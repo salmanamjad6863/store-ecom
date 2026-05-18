@@ -12,13 +12,167 @@ Build a professional cash-on-delivery (COD) e-commerce store on this Next.js 16 
 
 ---
 
-## How to use this guide
+## Table of contents
+
+| Step | Phase | Section |
+|------|-------|---------|
+| 0 | Prerequisites (you) | [Phase 0](#phase-0--prerequisites-manual) |
+| 1 | Project foundation | [Phase 1](#phase-1--project-foundation) |
+| 2 | Design system + layout | [Phase 2](#phase-2--design-system-and-layout-shell) |
+| 3 | Firebase data layer | [Phase 3](#phase-3--firebase-data-layer-types--tanstack-query) |
+| 4 | Zustand cart | [Phase 4](#phase-4--zustand-cart-store) |
+| 5 | Shop storefront | [Phase 5](#phase-5--shop-storefront) |
+| 6 | Cart page | [Phase 6](#phase-6--cart-page) |
+| 7 | Checkout (COD) | [Phase 7](#phase-7--checkout-cod-and-order-confirmation) |
+| 8 | Order tracking | [Phase 8](#phase-8--order-tracking) |
+| 9 | Customer auth | [Phase 9](#phase-9--optional-customer-auth-and-order-history) |
+| 10 | Admin auth + layout | [Phase 10](#phase-10--admin-auth-and-layout) |
+| 11 | Admin products | [Phase 11](#phase-11--admin-products-crud--cloudinary) |
+| 12 | Admin orders + polish | [Phase 12](#phase-12--admin-orders-polish-and-documentation) |
+
+Reference (read anytime): [Design system](#design-system-use-everywhere) · [Firestore schema](#firestore-data-model) · [Routes](#route-map) · [Appendices](#appendix-a--future-enhancements-out-of-scope)
+
+---
+
+## Build steps — do NOT do everything at once
+
+Use this repo in **13 small steps** (Step 1 = Phase 0 manual setup, Steps 2–13 = Phases 1–12 in Cursor). Each step is one Cursor session (or one focused Agent run). Finish and test before the next step.
+
+### Rules
+
+1. **One phase per Agent chat** (recommended) or one phase per prompt — never paste all phases together.
+2. **Phase 0 is manual** — no Cursor prompt; set up Firebase, Cloudinary, and `.env.local` first.
+3. **Never skip ahead** — later phases depend on earlier ones (see dependency list below).
+4. **Check acceptance criteria** in each phase section before moving on.
+5. Use **Agent mode** in Cursor to implement; use **Ask mode** only for questions.
+
+### Master progress checklist
+
+Copy this into your notes and tick as you go:
+
+```
+[ ] Step 1/13  — Phase 0: Firebase, Cloudinary, .env.local, admin user (manual)
+[ ] Step 2/13  — Phase 1: Dependencies, env validation, Firebase client, QueryProvider
+[ ] Step 3/13  — Phase 2: Design tokens, UI components, header/footer
+[ ] Step 4/13  — Phase 3: Types, Firestore queries, TanStack hooks
+[ ] Step 5/13  — Phase 4: Zustand cart + header badge
+[ ] Step 6/13  — Phase 5: /shop, product detail, add to cart
+[ ] Step 7/13  — Phase 6: /cart page
+[ ] Step 8/13  — Phase 7: /checkout, create order, confirmation page
+[ ] Step 9/13  — Phase 8: /track-order
+[ ] Step 10/13 — Phase 9: /account, optional customer auth
+[ ] Step 11/13 — Phase 10: /admin login + protected layout
+[ ] Step 12/13 — Phase 11: Admin product CRUD + Cloudinary upload
+[ ] Step 13/13 — Phase 12: Admin orders, polish, README
+```
+
+### What you do every time (Phases 1–12)
+
+| # | Action |
+|---|--------|
+| 1 | Open Cursor → switch to **Agent** mode |
+| 2 | Ensure `.env.local` is filled (from [`.env.example`](../.env.example)) |
+| 3 | Scroll to the phase section below (e.g. **Phase 3**) |
+| 4 | Copy the entire **Cursor prompt** code block for that phase |
+| 5 | Paste into chat + add the [standard wrapper](#standard-prompt-wrapper-copy-every-time) below the prompt |
+| 6 | Let Agent finish; run `pnpm dev` if needed |
+| 7 | Complete **Manual test** and tick **Acceptance criteria** for that phase |
+| 8 | Commit your work (optional but recommended) — e.g. `git commit -m "feat: phase 3 firebase data layer"` |
+| 9 | Start a **new** Agent chat for the next phase (keeps context clean) |
+
+### Standard prompt wrapper (copy every time)
+
+Paste this **after** the phase-specific Cursor prompt:
+
+```
+Implement ONLY the phase described above for the store-ecom repo.
+Do NOT start the next phase or build unrelated features.
+Follow acceptance criteria and file paths in docs/ECOM_BUILD_GUIDE.md.
+Read AGENTS.md and node_modules/next/dist/docs/ for Next.js 16 APIs.
+Use pnpm. Light theme only — use design tokens from the guide.
+When done, list what was created/changed and which acceptance criteria are satisfied.
+```
+
+### Example: starting Step 1 (Phase 1)
+
+1. Finish Phase 0 checklist.
+2. Open Agent and paste the **Phase 1** prompt from [below](#phase-1--project-foundation).
+3. Add the standard wrapper.
+4. Send. When done, run `pnpm dev` — app should start without env errors.
+5. Only then open a new chat for Phase 2.
+
+### Phase dependencies (do not skip)
+
+```mermaid
+flowchart LR
+  P0[Phase 0 env]
+  P1[Phase 1 foundation]
+  P2[Phase 2 UI]
+  P3[Phase 3 data]
+  P4[Phase 4 cart]
+  P5[Phase 5 shop]
+  P6[Phase 6 cart page]
+  P7[Phase 7 checkout]
+  P8[Phase 8 track]
+  P9[Phase 9 account]
+  P10[Phase 10 admin auth]
+  P11[Phase 11 admin products]
+  P12[Phase 12 admin orders]
+
+  P0 --> P1 --> P2 --> P3 --> P4 --> P5 --> P6 --> P7
+  P7 --> P8
+  P7 --> P9
+  P2 --> P10 --> P11 --> P12
+  P3 --> P11
+  P7 --> P12
+```
+
+| If you skip… | What breaks |
+|--------------|-------------|
+| Phase 0 | Missing Firebase/Cloudinary credentials |
+| Phase 1–2 | No providers, no UI components for later pages |
+| Phase 3 | Shop/checkout have no data layer |
+| Phase 4–6 | No cart before checkout |
+| Phase 7 | No orders to track or show in admin |
+| Phase 10 | Admin routes unprotected |
+| Phase 11 | Admin has nothing to sell |
+
+### What NOT to do
+
+- Do not paste Phases 1–12 in one message.
+- Do not say “build the full e-commerce store” without naming a single phase.
+- Do not start Phase 5 (shop) before Phase 3 (Firestore types/queries).
+- Do not start Phase 10 (admin) before Phase 7 (checkout creates orders).
+- Do not commit `.env.local` to git.
+
+### If something goes wrong
+
+Stay on the **same phase**. Start a new Agent message:
+
+```
+Continue Phase N only. Fix: [describe bug or error].
+Do not implement Phase N+1. Reference docs/ECOM_BUILD_GUIDE.md Phase N acceptance criteria.
+```
+
+### Estimated order of work
+
+| Phase | Who | Time hint |
+|-------|-----|-----------|
+| 0 | You (manual) | 30–60 min |
+| 1–4 | Cursor Agent | Foundation + cart |
+| 5–8 | Cursor Agent | Customer-facing store |
+| 9 | Cursor Agent | Optional accounts |
+| 10–12 | Cursor Agent | Admin panel + polish |
+
+---
+
+## How to use this guide (quick reference)
 
 1. Complete **Phase 0** manually (Firebase, Cloudinary, env vars).
-2. For phases **1–12**, copy the **Cursor prompt** block into Agent mode.
-3. Tell the agent: *“Implement only this phase. Do not start the next phase.”*
-4. Run manual tests from each phase before continuing.
-5. Read `AGENTS.md` and `node_modules/next/dist/docs/` when the agent touches Next.js APIs (this project uses Next.js 16 with breaking changes).
+2. For phases **1–12**, follow [Build steps](#build-steps--do-not-do-everything-at-once) above.
+3. Copy **only that phase’s Cursor prompt** + [standard wrapper](#standard-prompt-wrapper-copy-every-time).
+4. Run manual tests and tick acceptance criteria before the next phase.
+5. Read `AGENTS.md` and `node_modules/next/dist/docs/` when the agent touches Next.js APIs (Next.js 16).
 
 ---
 
@@ -295,9 +449,22 @@ Customer-facing labels: **Pending** → **Transferred** → **Delivered** (or **
 
 # Phase 0 — Prerequisites (manual)
 
+**Step 1 of 13** · Phase 0 · No Cursor prompt · You do this manually
+
 ### Goal
 
 Create Firebase and Cloudinary projects and local env file so later phases can connect.
+
+### Steps for this phase
+
+1. Create a Firebase project and enable Firestore + Authentication (Email/Password).
+2. Register a web app in Firebase and copy config values into `.env.local`.
+3. Create a Cloudinary account and copy cloud name, API key, and API secret into `.env.local`.
+4. Copy [`.env.example`](../.env.example) → `.env.local` and fill every variable.
+5. Set `NEXT_PUBLIC_ADMIN_EMAILS` to your admin email.
+6. In Firebase Auth, create a user with that admin email.
+7. Run `pnpm install` in the project root.
+8. Tick the checklist below, then start **Phase 1** in a new Agent chat.
 
 ### Checklist
 
@@ -324,9 +491,20 @@ Create Firebase and Cloudinary projects and local env file so later phases can c
 
 # Phase 1 — Project foundation
 
+**Step 2 of 13** · Phase 1 · Cursor Agent required
+
 ### Goal
 
 Install dependencies, validate env, initialize Firebase client, TanStack Query provider, and base folder structure.
+
+### Steps for this phase
+
+1. Confirm **Phase 0** checklist is complete and `.env.local` exists.
+2. Open Cursor **Agent** mode (new chat).
+3. Copy the **Cursor prompt** below + [standard wrapper](#standard-prompt-wrapper-copy-every-time).
+4. After Agent finishes, run `pnpm dev` and confirm no env errors.
+5. Tick **Acceptance criteria** below.
+6. Continue to **Phase 2** only.
 
 ### Files to create/edit
 
@@ -373,9 +551,19 @@ Do not build UI components, routes, cart, or admin in this phase.
 
 # Phase 2 — Design system and layout shell
 
+**Step 3 of 13** · Phase 2 · Cursor Agent required
+
 ### Goal
 
 Light-theme tokens, reusable UI primitives, site header/footer, and storefront layout.
+
+### Steps for this phase
+
+1. Confirm **Phase 1** acceptance criteria are done.
+2. New Agent chat → paste **Phase 2** prompt + [standard wrapper](#standard-prompt-wrapper-copy-every-time).
+3. Visit `/` in the browser — check header, footer, and colors match the guide.
+4. Tick **Acceptance criteria** below.
+5. Continue to **Phase 3** only.
 
 ### Files to create/edit
 
@@ -418,9 +606,19 @@ Do not implement shop product grid, Zustand, or Firebase queries yet.
 
 # Phase 3 — Firebase data layer (types + TanStack Query)
 
+**Step 4 of 13** · Phase 3 · Cursor Agent required
+
 ### Goal
 
 TypeScript models, Firestore helpers, query keys, and hooks for products and orders (read-focused).
+
+### Steps for this phase
+
+1. Confirm **Phase 2** is complete.
+2. New Agent chat → **Phase 3** prompt + [standard wrapper](#standard-prompt-wrapper-copy-every-time).
+3. Optionally add 1–2 test products in Firebase Console (for Phase 5).
+4. Tick **Acceptance criteria** below.
+5. Continue to **Phase 4** only.
 
 ### Files to create/edit
 
@@ -464,9 +662,19 @@ Do not create pages beyond what exists; no cart or checkout.
 
 # Phase 4 — Zustand cart store
 
+**Step 5 of 13** · Phase 4 · Cursor Agent required
+
 ### Goal
 
 Persistent client cart with stock-aware quantity limits.
+
+### Steps for this phase
+
+1. Confirm **Phase 3** is complete.
+2. New Agent chat → **Phase 4** prompt + [standard wrapper](#standard-prompt-wrapper-copy-every-time).
+3. Verify header cart badge updates (after you can add items in Phase 5).
+4. Tick **Acceptance criteria** below.
+5. Continue to **Phase 5** only.
 
 ### Files to create/edit
 
@@ -510,9 +718,20 @@ Do not create /cart or /checkout routes yet.
 
 # Phase 5 — Shop storefront
 
+**Step 6 of 13** · Phase 5 · Cursor Agent required
+
 ### Goal
 
 Product listing, type filter, product detail, badges (Sale, Sold out), add to cart.
+
+### Steps for this phase
+
+1. Confirm **Phase 4** is complete.
+2. Seed at least 2 products in Firebase (or wait until Phase 11 — seeding in Console is fine now).
+3. New Agent chat → **Phase 5** prompt + [standard wrapper](#standard-prompt-wrapper-copy-every-time).
+4. Test `/shop` and `/shop/[slug]`, add to cart, refresh — cart persists.
+5. Tick **Acceptance criteria** below.
+6. Continue to **Phase 6** only.
 
 ### Files to create/edit
 
@@ -556,9 +775,19 @@ Do not implement /cart, /checkout, or admin.
 
 # Phase 6 — Cart page
 
+**Step 7 of 13** · Phase 6 · Cursor Agent required
+
 ### Goal
 
 Full cart UI synced with Zustand: line items, quantity controls, subtotal, link to checkout.
+
+### Steps for this phase
+
+1. Confirm **Phase 5** is complete (products add to cart).
+2. New Agent chat → **Phase 6** prompt + [standard wrapper](#standard-prompt-wrapper-copy-every-time).
+3. Test `/cart`: change qty, remove items, empty state.
+4. Tick **Acceptance criteria** below.
+5. Continue to **Phase 7** only.
 
 ### Files to create/edit
 
@@ -596,9 +825,20 @@ Do not implement checkout Firestore writes yet.
 
 # Phase 7 — Checkout (COD) and order confirmation
 
+**Step 8 of 13** · Phase 7 · Cursor Agent required · Critical path
+
 ### Goal
 
 Checkout form, validate cart stock, create order in Firestore, decrement product quantity, clear cart, confirmation page.
+
+### Steps for this phase
+
+1. Confirm **Phase 6** is complete.
+2. Deploy or paste Firestore rules from [Security rules](#firestore-security-rules-outline) if not done yet.
+3. New Agent chat → **Phase 7** prompt + [standard wrapper](#standard-prompt-wrapper-copy-every-time).
+4. Place a test order as guest → check Firestore `orders` + product quantity decreased.
+5. Tick **Acceptance criteria** below.
+6. Continue to **Phase 8** (and optionally **Phase 9** before admin).
 
 ### Files to create/edit
 
@@ -644,9 +884,19 @@ Do not build /track-order or admin order management yet.
 
 # Phase 8 — Order tracking
 
+**Step 9 of 13** · Phase 8 · Cursor Agent required
+
 ### Goal
 
 Public page to look up order by order number + phone; show status timeline.
+
+### Steps for this phase
+
+1. Confirm **Phase 7** is complete (you have a test `orderNumber`).
+2. New Agent chat → **Phase 8** prompt + [standard wrapper](#standard-prompt-wrapper-copy-every-time).
+3. Test `/track-order` with correct and wrong phone numbers.
+4. Tick **Acceptance criteria** below.
+5. Continue to **Phase 9** or skip to **Phase 10** if you want admin first (Phase 9 is independent of admin).
 
 ### Files to create/edit
 
@@ -683,9 +933,20 @@ Do not implement /account or admin yet.
 
 # Phase 9 — Optional customer auth and order history
 
+**Step 10 of 13** · Phase 9 · Cursor Agent required · Can run after Phase 8
+
 ### Goal
 
 Customers can register/login; orders linked to `userId`; account pages list their orders.
+
+### Steps for this phase
+
+1. Confirm **Phase 7** is complete (orders exist).
+2. New Agent chat → **Phase 9** prompt + [standard wrapper](#standard-prompt-wrapper-copy-every-time).
+3. Register a test customer → place order while logged in → see it on `/account/orders`.
+4. Confirm guest checkout still works when logged out.
+5. Tick **Acceptance criteria** below.
+6. Continue to **Phase 10**.
 
 ### Files to create/edit
 
@@ -728,9 +989,19 @@ Do not implement /admin routes yet.
 
 # Phase 10 — Admin auth and layout
 
+**Step 11 of 13** · Phase 10 · Cursor Agent required
+
 ### Goal
 
 Protect admin routes; login page; admin shell with sidebar nav.
+
+### Steps for this phase
+
+1. Confirm admin user exists in Firebase (Phase 0) and email is in `NEXT_PUBLIC_ADMIN_EMAILS`.
+2. New Agent chat → **Phase 10** prompt + [standard wrapper](#standard-prompt-wrapper-copy-every-time).
+3. Test `/admin/login` with admin vs non-admin email.
+4. Tick **Acceptance criteria** below.
+5. Continue to **Phase 11** only.
 
 ### Files to create/edit
 
@@ -773,9 +1044,20 @@ Do not implement product forms or order tables yet (Phases 11-12).
 
 # Phase 11 — Admin products (CRUD + Cloudinary)
 
+**Step 12 of 13** · Phase 11 · Cursor Agent required
+
 ### Goal
 
 Admin can list, create, edit, hide products; set sale and quantity; upload images to Cloudinary.
+
+### Steps for this phase
+
+1. Confirm **Phase 10** is complete (you can log into admin).
+2. New Agent chat → **Phase 11** prompt + [standard wrapper](#standard-prompt-wrapper-copy-every-time).
+3. Create a product with image in admin → verify it appears on `/shop`.
+4. Set quantity `0` → Sold out on shop; set `hidden` → hidden from shop.
+5. Tick **Acceptance criteria** below.
+6. Continue to **Phase 12** only.
 
 ### Files to create/edit
 
@@ -823,9 +1105,20 @@ Do not implement admin orders list yet.
 
 # Phase 12 — Admin orders, polish, and documentation
 
+**Step 13 of 13** · Phase 12 · Cursor Agent required · Final phase
+
 ### Goal
 
 Admin order management, status updates, global polish, README env docs.
+
+### Steps for this phase
+
+1. Confirm **Phase 11** is complete and at least one test order exists (from Phase 7).
+2. New Agent chat → **Phase 12** prompt + [standard wrapper](#standard-prompt-wrapper-copy-every-time).
+3. In admin, change an order status → confirm on `/track-order`.
+4. Run full flow: admin product → customer order → admin status update → customer track.
+5. Tick **Acceptance criteria** below.
+6. Store v1 is complete — see [Appendix A](#appendix-a--future-enhancements-out-of-scope) for later ideas.
 
 ### Files to create/edit
 
