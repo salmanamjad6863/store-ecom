@@ -2,7 +2,6 @@
 
 import Image from "next/image";
 import Link from "next/link";
-import { useParams } from "next/navigation";
 import { useState } from "react";
 
 import { Button } from "@/components/ui/button";
@@ -13,14 +12,21 @@ import { Spinner } from "@/components/ui/spinner";
 import { Text } from "@/components/ui/text";
 import { useProduct } from "@/hooks/use-product-by-slug";
 import { getProductDisplayPrice, isProductSoldOut } from "@/lib/utils/product";
+import type { Product } from "@/types/product";
 
 import { AddToCartButton } from "./add-to-cart-button";
 import { ProductBadges } from "./product-badges";
 
-export function ProductDetail() {
-  const params = useParams();
-  const slug = typeof params.slug === "string" ? params.slug : "";
-  const { data: product, isLoading, isError, error } = useProduct(slug);
+type ProductDetailProps = {
+  slug: string;
+  initialProduct: Product;
+};
+
+export function ProductDetail({ slug, initialProduct }: ProductDetailProps) {
+  const { data: product = initialProduct, isLoading, isError, error } = useProduct(
+    slug,
+    initialProduct,
+  );
   const [activeImage, setActiveImage] = useState(0);
 
   if (isLoading) {
@@ -69,15 +75,15 @@ export function ProductDetail() {
   const selectedImage = images[activeImage] || images[0];
 
   return (
-    <Container className="py-10 sm:py-12">
+    <Container className="py-8 sm:py-12">
       <Link
         href="/shop"
-        className="mb-6 inline-block text-sm font-medium text-muted hover:text-foreground"
+        className="mb-4 inline-block text-sm font-medium text-muted hover:text-foreground sm:mb-6"
       >
         ← Back to shop
       </Link>
 
-      <div className="grid gap-10 lg:grid-cols-2">
+      <div className="grid gap-6 sm:gap-10 lg:grid-cols-2">
         <div className="flex flex-col gap-4">
           <div className="relative aspect-square overflow-hidden rounded-xl border border-muted/20 bg-background">
             {selectedImage ? (
@@ -117,11 +123,11 @@ export function ProductDetail() {
           <Text variant="small" as="p" className="uppercase tracking-wide">
             {product.type}
           </Text>
-          <Text variant="h1" as="h1">
+          <Text variant="h1" as="h1" className="text-2xl sm:text-3xl">
             {product.name}
           </Text>
           <Price amount={amount} compareAt={compareAt} className="text-xl" />
-          <Text variant="muted" as="p">
+          <Text variant="muted" as="p" className={soldOut ? "font-medium text-danger" : undefined}>
             {soldOut
               ? "This item is currently sold out."
               : `${product.quantity} in stock`}

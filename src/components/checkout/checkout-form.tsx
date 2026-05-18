@@ -14,8 +14,6 @@ import { Price } from "@/components/ui/price";
 import { Text } from "@/components/ui/text";
 import { Textarea } from "@/components/ui/textarea";
 import { useAuth } from "@/hooks/use-auth";
-import { useCart } from "@/hooks/use-cart";
-import { CreateOrderError, createOrder } from "@/lib/queries/orders";
 import type { CartItem } from "@/types/cart";
 
 const checkoutSchema = z.object({
@@ -33,12 +31,12 @@ type CheckoutFormValues = z.infer<typeof checkoutSchema>;
 type CheckoutFormProps = {
   items: CartItem[];
   subtotal: number;
+  onCompletingChange?: (completing: boolean) => void;
 };
 
-export function CheckoutForm({ items, subtotal }: CheckoutFormProps) {
+export function CheckoutForm({ items, subtotal, onCompletingChange }: CheckoutFormProps) {
   const router = useRouter();
   const { user } = useAuth();
-  const { clearCart } = useCart();
   const [submitError, setSubmitError] = useState<string | null>(null);
 
   const {
@@ -68,35 +66,56 @@ export function CheckoutForm({ items, subtotal }: CheckoutFormProps) {
   const onSubmit = async (values: CheckoutFormValues) => {
     setSubmitError(null);
 
+    const customer = {
+      name: values.name.trim(),
+      phone: values.phone.trim(),
+      email: values.email.trim(),
+      addressLine1: values.addressLine1.trim(),
+      city: values.city.trim(),
+      postalCode: values.postalCode?.trim() || undefined,
+      notes: values.notes?.trim() || undefined,
+    };
+
     try {
-      const { orderNumber } = await createOrder({
-        items,
-        customer: {
-          name: values.name.trim(),
-          phone: values.phone.trim(),
-          email: values.email.trim(),
-          addressLine1: values.addressLine1.trim(),
-          city: values.city.trim(),
-          postalCode: values.postalCode?.trim() || undefined,
-          notes: values.notes?.trim() || undefined,
-        },
-        userId: user?.uid,
+      const response = await fetch("/api/orders/create", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({
+          items,
+          customer,
+          userId: user?.uid,
+        }),
       });
 
-      clearCart();
-      router.push(`/order/${orderNumber}`);
-    } catch (error) {
-      if (error instanceof CreateOrderError) {
-        setSubmitError(error.message);
+      const data = (await response.json()) as {
+        orderId?: string;
+        orderNumber?: string;
+        error?: string;
+      };
+
+      if (!response.ok || !data.orderId) {
+        setSubmitError(data.error ?? "Could not place your order. Please try again.");
         return;
       }
 
+      onCompletingChange?.(true);
+
+      const trackParams = new URLSearchParams({
+        orderId: data.orderId,
+        placed: "1",
+        email: "pending",
+      });
+
+      router.replace(`/track-order?${trackParams.toString()}`);
+    } catch {
       setSubmitError("Could not place your order. Please try again.");
     }
   };
 
+  const isBusy = isSubmitting;
+
   return (
-    <form onSubmit={handleSubmit(onSubmit)} className="grid gap-8 lg:grid-cols-[1fr_320px]">
+    <form onSubmit={handleSubmit(onSubmit)} className="grid gap-6 lg:grid-cols-[1fr_320px] lg:gap-8">
       <Card className="space-y-6">
         <Text variant="h2" as="h2" className="text-xl">
           Delivery details
@@ -187,8 +206,8 @@ export function CheckoutForm({ items, subtotal }: CheckoutFormProps) {
           </Text>
         ) : null}
 
-        <Button type="submit" size="lg" disabled={isSubmitting} className="w-full sm:w-auto">
-          {isSubmitting ? "Placing order…" : "Place order"}
+        <Button type="submit" size="lg" disabled={isBusy} className="w-full">
+          {isBusy ? "Placing order…" : "Place order"}
         </Button>
       </Card>
 

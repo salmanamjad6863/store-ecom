@@ -1,37 +1,25 @@
-import { collection, getDocs, query, where } from "firebase/firestore";
+import { doc, getDoc } from "firebase/firestore";
 import { NextResponse } from "next/server";
 
 import { COLLECTIONS } from "@/lib/firebase/collections";
 import { getServerFirestore } from "@/lib/firebase/server";
 import { mapOrderDoc } from "@/lib/queries/mappers";
 import { toPublicOrder } from "@/lib/orders/public-order";
-import { phonesMatch } from "@/lib/utils/phone";
 
 export async function POST(request: Request) {
   try {
-    const body = (await request.json()) as { orderNumber?: string; phone?: string };
-    const orderNumber = String(body.orderNumber ?? "").trim();
-    const phone = String(body.phone ?? "").trim();
+    const body = (await request.json()) as { orderId?: string };
+    const orderId = String(body.orderId ?? "").trim();
 
-    if (!orderNumber || !phone) {
-      return NextResponse.json(
-        { error: "Order number and phone are required." },
-        { status: 400 },
-      );
+    if (!orderId) {
+      return NextResponse.json({ error: "Order ID is required." }, { status: 400 });
     }
 
     const db = getServerFirestore();
-    const snapshot = await getDocs(
-      query(collection(db, COLLECTIONS.orders), where("orderNumber", "==", orderNumber)),
-    );
+    const snapshot = await getDoc(doc(db, COLLECTIONS.orders, orderId));
+    const order = mapOrderDoc(snapshot);
 
-    if (snapshot.empty) {
-      return NextResponse.json({ error: "Order not found." }, { status: 404 });
-    }
-
-    const order = mapOrderDoc(snapshot.docs[0]);
-
-    if (!order || !phonesMatch(order.customer.phone, phone)) {
+    if (!order) {
       return NextResponse.json({ error: "Order not found." }, { status: 404 });
     }
 

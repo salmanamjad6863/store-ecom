@@ -1,161 +1,180 @@
 "use client";
 
 import { zodResolver } from "@hookform/resolvers/zod";
-import { useSearchParams } from "next/navigation";
-import { Suspense, useState } from "react";
+import { useRouter, useSearchParams } from "next/navigation";
+import { Suspense, useEffect, useState } from "react";
 import { useForm } from "react-hook-form";
 import { z } from "zod";
 
+import { ClearCartOnSuccess } from "@/components/checkout/clear-cart-on-success";
 import { Button } from "@/components/ui/button";
 import { Card } from "@/components/ui/card";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
-import { Price } from "@/components/ui/price";
 import { Spinner } from "@/components/ui/spinner";
 import { Text } from "@/components/ui/text";
 import type { PublicOrder } from "@/types/public-order";
 
-import { OrderStatusTimeline } from "./order-status-timeline";
+import { OrderReceipt, publicOrderToReceiptData } from "./order-receipt";
 
 const trackSchema = z.object({
-  orderNumber: z.string().min(5, "Enter your order number"),
-  phone: z.string().min(10, "Enter the phone number used at checkout"),
+  orderId: z.string().min(8, "Enter your order ID"),
 });
 
 type TrackFormValues = z.infer<typeof trackSchema>;
 
 function TrackOrderFormInner() {
+  const router = useRouter();
   const searchParams = useSearchParams();
-  const defaultOrderNumber = searchParams.get("orderNumber") ?? "";
+  const defaultOrderId = searchParams.get("orderId") ?? "";
+  const placedInUrl = searchParams.get("placed") === "1";
+  const emailPendingInUrl = searchParams.get("email") === "pending";
 
   const [trackedOrder, setTrackedOrder] = useState<PublicOrder | null>(null);
   const [notFoundMessage, setNotFoundMessage] = useState<string | null>(null);
+  const [autoTracked, setAutoTracked] = useState(false);
+  const [showPlacedBanner, setShowPlacedBanner] = useState(placedInUrl);
+  const [showLookupForm, setShowLookupForm] = useState(!placedInUrl);
 
   const {
     register,
     handleSubmit,
+    setValue,
     formState: { errors, isSubmitting },
   } = useForm<TrackFormValues>({
     resolver: zodResolver(trackSchema),
     defaultValues: {
-      orderNumber: defaultOrderNumber,
-      phone: "",
+      orderId: defaultOrderId,
     },
   });
 
-  const onSubmit = async (values: TrackFormValues) => {
+  const lookupOrder = async (orderId: string, fromManualLookup = false) => {
     setNotFoundMessage(null);
     setTrackedOrder(null);
 
-    try {
-      const response = await fetch("/api/orders/track", {
-        method: "POST",
-        headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({
-          orderNumber: values.orderNumber.trim(),
-          phone: values.phone.trim(),
-        }),
-      });
+    if (fromManualLookup) {
+      setShowPlacedBanner(false);
+    }
 
-      const data = (await response.json()) as { order?: PublicOrder; error?: string };
+    const response = await fetch("/api/orders/track", {
+      method: "POST",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify({ orderId: orderId.trim() }),
+    });
 
-      if (!response.ok || !data.order) {
-        setNotFoundMessage(data.error ?? "Order not found. Check your order number and phone.");
-        return;
+    const data = (await response.json()) as { order?: PublicOrder; error?: string };
+
+    if (!response.ok || !data.order) {
+      setNotFoundMessage(data.error ?? "Order not found. Check your order ID.");
+      return false;
+    }
+
+    setTrackedOrder(data.order);
+    return true;
+  };
+
+  useEffect(() => {
+    if (!defaultOrderId || autoTracked) {
+      return;
+    }
+
+    setAutoTracked(true);
+    setValue("orderId", defaultOrderId);
+
+    void lookupOrder(defaultOrderId).then((found) => {
+      if (found && placedInUrl) {
+        router.replace(`/track-order?orderId=${encodeURIComponent(defaultOrderId)}`, {
+          scroll: false,
+        });
       }
+    }).catch(() => {
+      setNotFoundMessage("Could not look up your order. Please try again.");
+    });
+  }, [autoTracked, defaultOrderId, placedInUrl, router, setValue]);
 
-      setTrackedOrder(data.order);
+  const onSubmit = async (values: TrackFormValues) => {
+    try {
+      await lookupOrder(values.orderId, true);
     } catch {
       setNotFoundMessage("Could not look up your order. Please try again.");
     }
   };
 
+  const isLoadingFirstPlaced = placedInUrl && !trackedOrder && !notFoundMessage;
+
   return (
-    <div className="mx-auto max-w-xl space-y-8">
-      <Card className="space-y-6">
-        <div>
-          <Text variant="h2" as="h2" className="text-xl">
-            Track your order
-          </Text>
-          <Text variant="muted" as="p" className="mt-2">
-            Enter the order number from your confirmation and the phone number you used at
-            checkout.
-          </Text>
-        </div>
+    <div className="mx-auto max-w-2xl space-y-8">
+      {placedInUrl ? <ClearCartOnSuccess /> : null}
 
-        <form onSubmit={handleSubmit(onSubmit)} className="space-y-4">
-          <div className="space-y-2">
-            <Label htmlFor="orderNumber">Order number</Label>
-            <Input
-              id="orderNumber"
-              placeholder="ORD-20260518-A7K2"
-              {...register("orderNumber")}
-            />
-            {errors.orderNumber ? (
-              <Text variant="small" as="p" className="text-danger">
-                {errors.orderNumber.message}
-              </Text>
-            ) : null}
-          </div>
-
-          <div className="space-y-2">
-            <Label htmlFor="phone">Phone number</Label>
-            <Input id="phone" type="tel" autoComplete="tel" {...register("phone")} />
-            {errors.phone ? (
-              <Text variant="small" as="p" className="text-danger">
-                {errors.phone.message}
-              </Text>
-            ) : null}
-          </div>
-
-          {notFoundMessage ? (
-            <Text variant="small" as="p" className="text-danger">
-              {notFoundMessage}
-            </Text>
-          ) : null}
-
-          <Button type="submit" size="lg" disabled={isSubmitting} className="w-full">
-            {isSubmitting ? "Looking up…" : "Track order"}
-          </Button>
-        </form>
-      </Card>
-
-      {trackedOrder ? (
+      {showLookupForm ? (
         <Card className="space-y-6">
           <div>
-            <Text variant="small" as="p" className="text-muted">
-              Order number
+            <Text variant="h2" as="h2" className="text-xl">
+              Track your order
             </Text>
-            <Text variant="h2" as="p" className="font-mono text-lg">
-              {trackedOrder.orderNumber}
+            <Text variant="muted" as="p" className="mt-2">
+              Enter the order ID from your confirmation email or receipt.
             </Text>
           </div>
 
-          <OrderStatusTimeline status={trackedOrder.status} />
+          <form onSubmit={handleSubmit(onSubmit)} className="space-y-4">
+            <div className="space-y-2">
+              <Label htmlFor="orderId">Order ID</Label>
+              <Input
+                id="orderId"
+                placeholder="e.g. a1b2c3d4e5f6g7h8i9j0"
+                className="font-mono text-sm"
+                {...register("orderId")}
+              />
+              {errors.orderId ? (
+                <Text variant="small" as="p" className="text-danger">
+                  {errors.orderId.message}
+                </Text>
+              ) : null}
+            </div>
 
-          <ul className="space-y-2 border-t border-muted/20 pt-4 text-sm">
-            {trackedOrder.items.map((item) => (
-              <li key={`${item.productId}-${item.slug}`} className="flex justify-between gap-4">
-                <span className="text-muted">
-                  {item.name} × {item.quantity}
-                </span>
-                <Price amount={item.unitPrice * item.quantity} />
-              </li>
-            ))}
-          </ul>
+            {notFoundMessage ? (
+              <Text variant="small" as="p" className="text-danger">
+                {notFoundMessage}
+              </Text>
+            ) : null}
 
-          <div className="flex items-center justify-between border-t border-muted/20 pt-4">
-            <Text variant="h2" as="span">
-              Total
-            </Text>
-            <Price amount={trackedOrder.total} />
-          </div>
-
-          <Text variant="small" as="p" className="text-muted">
-            Delivery: {trackedOrder.customer.addressLine1}, {trackedOrder.customer.city}
-            {trackedOrder.customer.postalCode ? ` ${trackedOrder.customer.postalCode}` : ""}
-          </Text>
+            <Button type="submit" size="lg" disabled={isSubmitting} className="w-full">
+              {isSubmitting ? "Looking up…" : "Track order"}
+            </Button>
+          </form>
         </Card>
+      ) : null}
+
+      {isLoadingFirstPlaced ? (
+        <div className="flex justify-center py-12">
+          <Spinner size="lg" />
+        </div>
+      ) : null}
+
+      {trackedOrder ? (
+        <>
+          <OrderReceipt
+            order={publicOrderToReceiptData(trackedOrder)}
+            showConfirmationBanner={showPlacedBanner}
+            emailPending={emailPendingInUrl && showPlacedBanner}
+            showTimeline
+          />
+          {!showLookupForm ? (
+            <div className="text-center">
+              <button
+                type="button"
+                onClick={() => {
+                  setShowLookupForm(true);
+                  setShowPlacedBanner(false);
+                }}
+                className="text-sm font-medium text-accent hover:underline"
+              >
+                Track another order
+              </button>
+            </div>
+          ) : null}
+        </>
       ) : null}
     </div>
   );

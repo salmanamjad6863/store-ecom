@@ -1,7 +1,7 @@
 import type { Metadata } from "next";
 import { Geist, Geist_Mono } from "next/font/google";
 
-import { StoreLayout } from "@/components/layout/store-layout";
+import { LayoutSwitcher } from "@/components/layout/layout-switcher";
 import { env } from "@/lib/env";
 import { AuthProvider } from "@/providers/auth-provider";
 import { QueryProvider } from "@/providers/query-provider";
@@ -31,12 +31,12 @@ export default function RootLayout({
   return (
     <html
       lang="en"
-      className={`${geistSans.variable} ${geistMono.variable} h-full antialiased`}
+      className={`${geistSans.variable} ${geistMono.variable} min-h-dvh antialiased`}
     >
-      <body className="min-h-full flex flex-col">
+      <body className="flex min-h-dvh flex-col">
         <QueryProvider>
           <AuthProvider>
-            <StoreLayout>{children}</StoreLayout>
+            <LayoutSwitcher>{children}</LayoutSwitcher>
           </AuthProvider>
         </QueryProvider>
       </body>

@@ -3,7 +3,7 @@ import { cn } from "@/lib/utils/cn";
 const variantStyles = {
   default: "bg-background text-foreground border border-muted/30",
   sale: "border border-accent text-accent bg-surface",
-  soldOut: "bg-muted/15 text-muted border border-muted/30",
+  soldOut: "border border-danger/40 bg-danger/10 font-semibold text-danger",
 } as const;
 
 type BadgeVariant = keyof typeof variantStyles;

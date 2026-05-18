@@ -3,6 +3,7 @@
 import { useState } from "react";
 
 import { Button } from "@/components/ui/button";
+import { cn } from "@/lib/utils/cn";
 import { addProductToCart } from "@/stores/cart-store";
 import type { Product } from "@/types/product";
 import { isProductSoldOut } from "@/lib/utils/product";
@@ -32,7 +33,10 @@ export function AddToCartButton({ product, size = "md", className }: AddToCartBu
       type="button"
       size={size}
       variant={soldOut ? "secondary" : "primary"}
-      className={className}
+      className={cn(
+        className,
+        soldOut && "border-danger/40 bg-danger/10 font-semibold text-danger disabled:opacity-100",
+      )}
       disabled={soldOut}
       onClick={handleClick}
     >

@@ -14,8 +14,8 @@ export function FeaturedProducts() {
   const featured = products?.slice(0, 4) ?? [];
 
   return (
-    <section className="border-t border-muted/20 bg-surface py-16">
-      <Container className="flex flex-col gap-8">
+    <section className="border-t border-muted/20 bg-surface py-10 sm:py-16">
+      <Container className="flex flex-col gap-6 sm:gap-8">
         <div className="flex flex-col gap-2 sm:flex-row sm:items-end sm:justify-between">
           <div>
             <Text variant="h2" as="h2">

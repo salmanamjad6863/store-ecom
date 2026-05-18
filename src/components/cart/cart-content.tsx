@@ -32,7 +32,7 @@ export function CartContent() {
   }
 
   return (
-    <Container className="py-10 sm:py-12">
+    <Container className="py-8 sm:py-12">
       <div className="mb-8 flex flex-col gap-2 sm:flex-row sm:items-end sm:justify-between">
         <div>
           <Text variant="h1" as="h1">
@@ -50,8 +50,8 @@ export function CartContent() {
         </Link>
       </div>
 
-      <div className="grid gap-10 lg:grid-cols-[1fr_320px]">
-        <ul className="rounded-xl border border-muted/20 bg-surface px-4 sm:px-6">
+      <div className="grid gap-8 lg:grid-cols-[1fr_320px] lg:gap-10">
+        <ul className="rounded-xl border border-muted/20 bg-surface px-3 sm:px-6">
           {items.map((item) => (
             <CartLineItem
               key={item.productId}

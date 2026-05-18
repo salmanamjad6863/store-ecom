@@ -12,8 +12,16 @@ export function ProductBadges({ product, className }: ProductBadgesProps) {
 
   return (
     <div className={className}>
-      {soldOut ? <Badge variant="soldOut">Sold out</Badge> : null}
-      {!soldOut && product.onSale ? <Badge variant="sale">Sale</Badge> : null}
+      {soldOut ? (
+        <Badge variant="soldOut" className="px-1.5 py-0 text-[10px] sm:px-2.5 sm:text-xs">
+          Sold out
+        </Badge>
+      ) : null}
+      {!soldOut && product.onSale ? (
+        <Badge variant="sale" className="px-1.5 py-0 text-[10px] sm:px-2.5 sm:text-xs">
+          Sale
+        </Badge>
+      ) : null}
     </div>
   );
 }

@@ -20,8 +20,8 @@ function ShopContentInner() {
   const { data: types = [] } = useProductTypes();
 
   return (
-    <Container className="py-10 sm:py-12">
-      <div className="mb-8 flex flex-col gap-4">
+    <Container className="py-8 sm:py-12">
+      <div className="mb-6 flex flex-col gap-2 sm:mb-8 sm:gap-4">
         <Text variant="h1" as="h1">
           Shop
         </Text>
@@ -32,7 +32,7 @@ function ShopContentInner() {
 
       <ProductFilters types={types} />
 
-      <div className="mt-8">
+      <div className="mt-6 sm:mt-8">
         {isLoading ? (
           <div className="flex justify-center py-16">
             <Spinner size="lg" />

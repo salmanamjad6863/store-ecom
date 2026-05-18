@@ -7,9 +7,9 @@ import { env } from "@/lib/env";
 export default function Home() {
   return (
     <>
-      <Container className="flex flex-col items-center gap-8 py-16 text-center sm:py-24">
-        <div className="flex max-w-2xl flex-col gap-4">
-          <Text variant="h1" as="h1">
+      <Container className="flex flex-col items-center gap-6 py-10 text-center sm:gap-8 sm:py-24">
+        <div className="flex max-w-2xl flex-col gap-3 sm:gap-4">
+          <Text variant="h1" as="h1" className="text-2xl sm:text-3xl">
             Welcome to {env.storeName}
           </Text>
           <Text variant="muted" as="p">

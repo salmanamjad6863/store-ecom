@@ -27,28 +27,33 @@ export function ProductFilters({ types }: ProductFiltersProps) {
     return query ? `${pathname}?${query}` : pathname;
   };
 
-  const chips = [{ label: "All", value: undefined }, ...types.map((type) => ({ label: type, value: type }))];
+  const chips = [
+    { label: "All", value: undefined },
+    ...types.map((type) => ({ label: type, value: type })),
+  ];
 
   return (
-    <div className="flex flex-wrap gap-2">
-      {chips.map((chip) => {
-        const isActive = chip.value ? activeType === chip.value : !activeType;
+    <div className="-mx-1 overflow-x-auto px-1 pb-1 sm:mx-0 sm:overflow-visible sm:pb-0">
+      <div className="flex w-max min-w-full gap-2 sm:w-auto sm:flex-wrap">
+        {chips.map((chip) => {
+          const isActive = chip.value ? activeType === chip.value : !activeType;
 
-        return (
-          <Link
-            key={chip.label}
-            href={buildHref(chip.value)}
-            className={cn(
-              "rounded-full border px-4 py-2 text-sm font-medium transition-colors",
-              isActive
-                ? "border-accent bg-accent text-white"
-                : "border-muted/30 bg-surface text-foreground hover:bg-background",
-            )}
-          >
-            {chip.label}
-          </Link>
-        );
-      })}
+          return (
+            <Link
+              key={chip.label}
+              href={buildHref(chip.value)}
+              className={cn(
+                "shrink-0 rounded-full border px-3 py-1.5 text-xs font-medium transition-colors sm:px-4 sm:py-2 sm:text-sm",
+                isActive
+                  ? "border-accent bg-accent text-white"
+                  : "border-muted/30 bg-surface text-foreground hover:bg-background",
+              )}
+            >
+              {chip.label}
+            </Link>
+          );
+        })}
+      </div>
     </div>
   );
 }

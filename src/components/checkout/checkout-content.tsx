@@ -1,6 +1,6 @@
 "use client";
 
-import { useEffect } from "react";
+import { useEffect, useState } from "react";
 import { useRouter } from "next/navigation";
 
 import { Container } from "@/components/ui/container";
@@ -14,14 +14,15 @@ export function CheckoutContent() {
   const router = useRouter();
   const { items, getSubtotal } = useCart();
   const subtotal = getSubtotal();
+  const [isCompletingCheckout, setIsCompletingCheckout] = useState(false);
 
   useEffect(() => {
-    if (items.length === 0) {
+    if (items.length === 0 && !isCompletingCheckout) {
       router.replace("/cart");
     }
-  }, [items.length, router]);
+  }, [items.length, isCompletingCheckout, router]);
 
-  if (items.length === 0) {
+  if (items.length === 0 && !isCompletingCheckout) {
     return (
       <Container className="flex justify-center py-16">
         <Spinner size="lg" />
@@ -40,7 +41,11 @@ export function CheckoutContent() {
         </Text>
       </div>
 
-      <CheckoutForm items={items} subtotal={subtotal} />
+      <CheckoutForm
+        items={items}
+        subtotal={subtotal}
+        onCompletingChange={setIsCompletingCheckout}
+      />
     </Container>
   );
 }

@@ -95,22 +95,13 @@ export function AccountOrdersContent() {
                     {formatCurrency(order.total, env.currency.code, env.currency.locale)}
                   </Text>
                 </div>
-                <div className="flex gap-2">
-                  <Button
-                    href={`/track-order?orderNumber=${encodeURIComponent(order.orderNumber)}`}
-                    variant="secondary"
-                    size="sm"
-                  >
-                    Track
-                  </Button>
-                  <Button
-                    href={`/order/${encodeURIComponent(order.orderNumber)}`}
-                    variant="ghost"
-                    size="sm"
-                  >
-                    Details
-                  </Button>
-                </div>
+                <Button
+                  href={`/track-order?orderId=${encodeURIComponent(order.id)}`}
+                  variant="secondary"
+                  size="sm"
+                >
+                  Track order
+                </Button>
               </Card>
             </li>
           ))}

@@ -64,8 +64,8 @@ function parsePublicEnv() {
       .filter(Boolean),
     storeName: data.NEXT_PUBLIC_STORE_NAME ?? "Ecom Store",
     currency: {
-      code: data.NEXT_PUBLIC_CURRENCY_CODE ?? "USD",
-      locale: data.NEXT_PUBLIC_CURRENCY_LOCALE ?? "en-US",
+      code: data.NEXT_PUBLIC_CURRENCY_CODE ?? "PKR",
+      locale: data.NEXT_PUBLIC_CURRENCY_LOCALE ?? "en-PK",
     },
   };
 }

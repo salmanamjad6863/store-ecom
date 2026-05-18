@@ -1,5 +1,6 @@
 "use client";
 
+import { ShoppingBag } from "lucide-react";
 import Link from "next/link";
 
 import { cn } from "@/lib/utils/cn";
@@ -11,14 +12,15 @@ export function CartNavLink() {
   return (
     <Link
       href="/cart"
+      aria-label={cartCount > 0 ? `Cart, ${cartCount} items` : "Cart"}
       className={cn(
-        "rounded-lg px-3 py-2 text-sm font-medium text-foreground transition-colors hover:bg-background",
+        "relative inline-flex h-9 w-9 items-center justify-center rounded-lg text-foreground transition-colors hover:bg-background sm:h-10 sm:w-10",
       )}
     >
-      Cart
+      <ShoppingBag className="h-5 w-5" strokeWidth={1.75} aria-hidden />
       {cartCount > 0 ? (
-        <span className="ml-1.5 inline-flex h-5 min-w-5 items-center justify-center rounded-full bg-accent px-1 text-xs text-white">
-          {cartCount}
+        <span className="absolute -right-0.5 -top-0.5 flex h-5 min-w-5 items-center justify-center rounded-full bg-accent px-1 text-[10px] font-semibold leading-none text-white">
+          {cartCount > 99 ? "99+" : cartCount}
         </span>
       ) : null}
     </Link>

@@ -16,8 +16,8 @@ export const dummyProducts: Product[] = [
     images: [
       "https://images.unsplash.com/photo-1521572163474-6864f9cf17ab?w=800&h=800&fit=crop",
     ],
-    price: 2999,
-    salePrice: 1999,
+    price: 299900,
+    salePrice: 199900,
     onSale: true,
     quantity: 25,
     hidden: false,
