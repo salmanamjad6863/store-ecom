@@ -91,6 +91,8 @@ export const useCartStore = create<CartState>()(
         }));
       },
 
+      replaceItems: (items) => set({ items }),
+
       clearCart: () => set({ items: [] }),
 
       getItemCount: () =>

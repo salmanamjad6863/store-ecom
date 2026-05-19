@@ -12,7 +12,9 @@ import {
 } from "firebase/firestore";
 
 import {
+  dummyProducts,
   getDummyProductBySlug,
+  isDummyProductId,
   mergeWithDummyProducts,
 } from "@/lib/data/dummy-products";
 import { COLLECTIONS } from "@/lib/firebase/collections";
@@ -90,10 +92,34 @@ export async function fetchAdminProducts(): Promise<Product[]> {
 }
 
 export async function fetchProductById(id: string): Promise<Product | null> {
+  if (isDummyProductId(id)) {
+    return dummyProducts.find((product) => product.id === id) ?? null;
+  }
+
   const db = getClientFirestore();
   const snapshot = await getDoc(doc(db, COLLECTIONS.products, id));
 
   return mapProductDoc(snapshot);
+}
+
+/** Fetch current catalog rows for cart sync (by product id). */
+export async function fetchProductsByIds(ids: string[]): Promise<Product[]> {
+  const uniqueIds = [...new Set(ids)];
+
+  if (uniqueIds.length === 0) {
+    return [];
+  }
+
+  const results: Product[] = [];
+
+  for (const id of uniqueIds) {
+    const product = await fetchProductById(id);
+    if (product) {
+      results.push(product);
+    }
+  }
+
+  return results;
 }
 
 export type ProductInput = {

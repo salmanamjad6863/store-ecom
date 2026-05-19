@@ -5,6 +5,7 @@ import { LayoutSwitcher } from "@/components/layout/layout-switcher";
 import { env } from "@/lib/env";
 import { AuthProvider } from "@/providers/auth-provider";
 import { QueryProvider } from "@/providers/query-provider";
+import { ToastProvider } from "@/providers/toast-provider";
 
 import "./globals.css";
 
@@ -36,7 +37,9 @@ export default function RootLayout({
       <body className="flex min-h-dvh flex-col">
         <QueryProvider>
           <AuthProvider>
-            <LayoutSwitcher>{children}</LayoutSwitcher>
+            <ToastProvider>
+              <LayoutSwitcher>{children}</LayoutSwitcher>
+            </ToastProvider>
           </AuthProvider>
         </QueryProvider>
       </body>

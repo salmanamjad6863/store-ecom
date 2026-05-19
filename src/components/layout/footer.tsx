@@ -21,9 +21,6 @@ export function Footer() {
           <Link href="/track-order" className="text-sm text-muted hover:text-foreground">
             Track Order
           </Link>
-          <Link href="/account" className="text-sm text-muted hover:text-foreground">
-            Account
-          </Link>
         </nav>
       </Container>
     </footer>
