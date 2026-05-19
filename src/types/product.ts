@@ -7,6 +7,8 @@ export type Product = {
   images: string[];
   price: number;
   salePrice?: number;
+  /** Whole-number discount (e.g. 25 = 25% off regular price). */
+  salePercent?: number;
   onSale: boolean;
   quantity: number;
   hidden: boolean;

@@ -12,7 +12,13 @@ import { Label } from "@/components/ui/label";
 import { Text } from "@/components/ui/text";
 import { Textarea } from "@/components/ui/textarea";
 import type { ProductInput } from "@/lib/queries/products";
+import {
+  computeSalePriceFromPercent,
+  getProductSalePercent,
+} from "@/lib/utils/product";
 import { slugify } from "@/lib/utils/slug";
+import { formatCurrency } from "@/lib/utils/format";
+import { env } from "@/lib/env";
 import type { Product } from "@/types/product";
 
 import { ImageUploader } from "./image-uploader";
@@ -24,7 +30,7 @@ const productFormSchema = z
     type: z.string().min(1, "Type is required"),
     description: z.string().min(10, "Description must be at least 10 characters"),
     priceDollars: z.number().positive("Price must be greater than 0"),
-    salePriceDollars: z.number().positive().optional(),
+    salePercent: z.number().int().min(1).max(99).optional(),
     onSale: z.boolean(),
     quantity: z.number().int().min(0, "Quantity cannot be negative"),
     hidden: z.boolean(),
@@ -35,11 +41,11 @@ const productFormSchema = z
         return true;
       }
 
-      return typeof data.salePriceDollars === "number" && data.salePriceDollars > 0;
+      return typeof data.salePercent === "number" && data.salePercent >= 1 && data.salePercent <= 99;
     },
     {
-      message: "Sale price is required when product is on sale",
-      path: ["salePriceDollars"],
+      message: "Discount percentage is required when product is on sale (1–99%)",
+      path: ["salePercent"],
     },
   );
 
@@ -84,7 +90,7 @@ export function ProductForm({
       type: product?.type ?? "Clothing",
       description: product?.description ?? "",
       priceDollars: product ? fromMinorUnits(product.price) : 2999,
-      salePriceDollars: product?.salePrice ? fromMinorUnits(product.salePrice) : undefined,
+      salePercent: product ? (getProductSalePercent(product) ?? undefined) : undefined,
       onSale: product?.onSale ?? false,
       quantity: product?.quantity ?? 0,
       hidden: product?.hidden ?? false,
@@ -93,6 +99,18 @@ export function ProductForm({
 
   const name = watch("name");
   const onSale = watch("onSale");
+  const priceDollars = watch("priceDollars");
+  const salePercent = watch("salePercent");
+
+  const previewSalePriceMinor =
+    onSale &&
+    typeof priceDollars === "number" &&
+    priceDollars > 0 &&
+    typeof salePercent === "number" &&
+    salePercent >= 1 &&
+    salePercent <= 99
+      ? computeSalePriceFromPercent(toMinorUnits(priceDollars), salePercent)
+      : null;
 
   useEffect(() => {
     if (!slugManual && name) {
@@ -108,9 +126,14 @@ export function ProductForm({
       return;
     }
 
-    const salePriceDollars =
-      typeof values.salePriceDollars === "number" && !Number.isNaN(values.salePriceDollars)
-        ? values.salePriceDollars
+    const percent =
+      typeof values.salePercent === "number" && !Number.isNaN(values.salePercent)
+        ? values.salePercent
+        : undefined;
+    const priceMinor = toMinorUnits(values.priceDollars);
+    const salePriceMinor =
+      values.onSale && percent !== undefined
+        ? computeSalePriceFromPercent(priceMinor, percent)
         : undefined;
 
     try {
@@ -120,8 +143,9 @@ export function ProductForm({
         type: values.type.trim(),
         description: values.description.trim(),
         images,
-        price: toMinorUnits(values.priceDollars),
-        salePrice: values.onSale && salePriceDollars ? toMinorUnits(salePriceDollars) : undefined,
+        price: priceMinor,
+        salePrice: salePriceMinor,
+        salePercent: values.onSale ? percent : undefined,
         onSale: values.onSale,
         quantity: values.quantity,
         hidden: values.hidden,
@@ -235,17 +259,29 @@ export function ProductForm({
 
         {onSale ? (
           <div className="space-y-2">
-            <Label htmlFor="salePriceDollars">Sale price (PKR)</Label>
+            <Label htmlFor="salePercent">Discount (% off)</Label>
             <Input
-              id="salePriceDollars"
+              id="salePercent"
               type="number"
               step="1"
-              min="0"
-              {...register("salePriceDollars", { valueAsNumber: true })}
+              min="1"
+              max="99"
+              placeholder="e.g. 25"
+              {...register("salePercent", { valueAsNumber: true })}
             />
-            {errors.salePriceDollars ? (
+            {errors.salePercent ? (
               <Text variant="small" as="p" className="text-danger">
-                {errors.salePriceDollars.message}
+                {errors.salePercent.message}
+              </Text>
+            ) : null}
+            {previewSalePriceMinor !== null ? (
+              <Text variant="small" as="p" className="text-muted">
+                Sale price:{" "}
+                {formatCurrency(
+                  previewSalePriceMinor,
+                  env.currency.code,
+                  env.currency.locale,
+                )}
               </Text>
             ) : null}
           </div>

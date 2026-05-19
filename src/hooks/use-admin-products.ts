@@ -5,6 +5,7 @@ import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
 import { queryKeys } from "@/lib/queries/keys";
 import {
   createProduct,
+  deleteProduct,
   fetchAdminProducts,
   fetchProductById,
   updateProduct,
@@ -44,5 +45,10 @@ export function useProductMutations() {
     onSuccess: invalidateProducts,
   });
 
-  return { createMutation, updateMutation };
+  const deleteMutation = useMutation({
+    mutationFn: (id: string) => deleteProduct(id),
+    onSuccess: invalidateProducts,
+  });
+
+  return { createMutation, updateMutation, deleteMutation };
 }

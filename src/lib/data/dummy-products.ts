@@ -18,6 +18,7 @@ export const dummyProducts: Product[] = [
     ],
     price: 299900,
     salePrice: 199900,
+    salePercent: 33,
     onSale: true,
     quantity: 25,
     hidden: false,

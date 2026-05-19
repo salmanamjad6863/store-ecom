@@ -1,5 +1,6 @@
 "use client";
 
+import Image from "next/image";
 import Link from "next/link";
 
 import { Badge } from "@/components/ui/badge";
@@ -11,6 +12,9 @@ import { Text } from "@/components/ui/text";
 import { useAdminProducts } from "@/hooks/use-admin-products";
 import { env } from "@/lib/env";
 import { formatCurrency } from "@/lib/utils/format";
+import { getProductStatusBadges } from "@/lib/utils/product";
+
+import { DeleteProductButton } from "./delete-product-button";
 
 export function AdminProductsList() {
   const { data: products, isLoading, isError } = useAdminProducts();
@@ -47,6 +51,9 @@ export function AdminProductsList() {
           <table className="w-full min-w-[640px] text-left text-sm">
             <thead className="border-b border-muted/20 bg-background">
               <tr>
+                <th className="w-16 px-4 py-3 font-medium text-muted">
+                  <span className="sr-only">Image</span>
+                </th>
                 <th className="px-4 py-3 font-medium text-muted">Name</th>
                 <th className="px-4 py-3 font-medium text-muted">Type</th>
                 <th className="px-4 py-3 font-medium text-muted">Qty</th>
@@ -56,8 +63,28 @@ export function AdminProductsList() {
               </tr>
             </thead>
             <tbody>
-              {products.map((product) => (
+              {products.map((product) => {
+                const image = product.images[0];
+
+                return (
                 <tr key={product.id} className="border-b border-muted/10 last:border-0">
+                  <td className="px-4 py-3">
+                    <div className="relative h-12 w-12 shrink-0 overflow-hidden rounded-md border border-muted/20 bg-background">
+                      {image ? (
+                        <Image
+                          src={image}
+                          alt=""
+                          fill
+                          sizes="48px"
+                          className="object-cover"
+                        />
+                      ) : (
+                        <div className="flex h-full items-center justify-center text-[10px] text-muted">
+                          —
+                        </div>
+                      )}
+                    </div>
+                  </td>
                   <td className="px-4 py-3 font-medium text-foreground">{product.name}</td>
                   <td className="px-4 py-3 text-muted">{product.type}</td>
                   <td className="px-4 py-3 text-muted">{product.quantity}</td>
@@ -66,23 +93,27 @@ export function AdminProductsList() {
                   </td>
                   <td className="px-4 py-3">
                     <div className="flex flex-wrap gap-1">
-                      {product.hidden ? <Badge variant="default">Hidden</Badge> : null}
-                      {product.onSale ? <Badge variant="sale">Sale</Badge> : null}
-                      {product.quantity === 0 ? (
-                        <Badge variant="soldOut">Sold out</Badge>
-                      ) : null}
+                      {getProductStatusBadges(product).map((status) => (
+                        <Badge key={status.label} variant={status.variant}>
+                          {status.label}
+                        </Badge>
+                      ))}
                     </div>
                   </td>
                   <td className="px-4 py-3">
-                    <Link
-                      href={`/admin/products/${product.id}/edit`}
-                      className="font-medium text-accent hover:underline"
-                    >
-                      Edit
-                    </Link>
+                    <div className="flex flex-wrap items-center gap-3">
+                      <Link
+                        href={`/admin/products/${product.id}/edit`}
+                        className="font-medium text-accent hover:underline"
+                      >
+                        Edit
+                      </Link>
+                      <DeleteProductButton product={product} />
+                    </div>
                   </td>
                 </tr>
-              ))}
+              );
+              })}
             </tbody>
           </table>
         </Card>

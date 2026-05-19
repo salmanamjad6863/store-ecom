@@ -1,6 +1,7 @@
 import {
   addDoc,
   collection,
+  deleteDoc,
   doc,
   getDoc,
   getDocs,
@@ -130,6 +131,7 @@ export type ProductInput = {
   images: string[];
   price: number;
   salePrice?: number;
+  salePercent?: number;
   onSale: boolean;
   quantity: number;
   hidden: boolean;
@@ -145,7 +147,9 @@ export async function createProduct(input: ProductInput): Promise<string> {
     description: input.description,
     images: input.images,
     price: input.price,
-    ...(input.onSale && input.salePrice !== undefined ? { salePrice: input.salePrice } : {}),
+    ...(input.onSale && input.salePrice !== undefined
+      ? { salePrice: input.salePrice, salePercent: input.salePercent ?? null }
+      : {}),
     onSale: input.onSale,
     quantity: input.quantity,
     hidden: input.hidden,
@@ -154,6 +158,28 @@ export async function createProduct(input: ProductInput): Promise<string> {
   });
 
   return docRef.id;
+}
+
+export class DeleteProductError extends Error {
+  constructor(message: string) {
+    super(message);
+    this.name = "DeleteProductError";
+  }
+}
+
+export async function deleteProduct(id: string): Promise<void> {
+  if (isDummyProductId(id)) {
+    throw new DeleteProductError("The sample product cannot be deleted.");
+  }
+
+  const db = getClientFirestore();
+  const snapshot = await getDoc(doc(db, COLLECTIONS.products, id));
+
+  if (!snapshot.exists()) {
+    throw new DeleteProductError("Product not found or already deleted.");
+  }
+
+  await deleteDoc(doc(db, COLLECTIONS.products, id));
 }
 
 export async function updateProduct(id: string, input: ProductInput): Promise<void> {
@@ -167,6 +193,7 @@ export async function updateProduct(id: string, input: ProductInput): Promise<vo
     images: input.images,
     price: input.price,
     salePrice: input.onSale && input.salePrice !== undefined ? input.salePrice : null,
+    salePercent: input.onSale && input.salePercent !== undefined ? input.salePercent : null,
     onSale: input.onSale,
     quantity: input.quantity,
     hidden: input.hidden,
