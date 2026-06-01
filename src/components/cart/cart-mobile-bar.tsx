@@ -10,7 +10,7 @@ type CartMobileBarProps = {
 
 export function CartMobileBar({ subtotal, itemCount }: CartMobileBarProps) {
   return (
-    <div className="fixed inset-x-0 bottom-0 z-40 border-t border-muted/20 bg-surface p-4 shadow-[0_-4px_20px_rgba(0,0,0,0.08)] lg:hidden">
+    <div className="fixed inset-x-0 bottom-0 z-40 border-t border-deep/10 bg-cream p-4 shadow-[0_-4px_20px_rgba(43,26,20,0.12)] lg:hidden">
       <div className="mx-auto flex max-w-6xl items-center justify-between gap-4">
         <section>
           <p className="text-xs text-muted">

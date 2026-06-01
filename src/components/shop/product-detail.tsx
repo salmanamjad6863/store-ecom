@@ -129,14 +129,14 @@ export function ProductDetail({ slug, initialProduct }: ProductDetailProps) {
         </div>
 
         <div className="flex flex-col gap-6">
-          <ProductBadges product={product} />
-          <Text variant="small" as="p" className="uppercase tracking-wide">
+          <ProductBadges product={product} className="!items-start" />
+          <Text variant="small" as="p" className="text-[11px] uppercase tracking-[0.15em] text-warm">
             {product.type}
           </Text>
-          <Text variant="h1" as="h1" className="text-2xl sm:text-3xl">
+          <Text variant="h1" as="h1" className="font-serif text-3xl font-bold text-deep sm:text-4xl">
             {product.name}
           </Text>
-          <Price amount={amount} compareAt={compareAt} className="text-xl" />
+          <Price amount={amount} compareAt={compareAt} className="text-xl" compareFirst />
           <Text
             variant="muted"
             as="p"

@@ -22,6 +22,8 @@ import { COLLECTIONS } from "@/lib/firebase/collections";
 import { getClientFirestore } from "@/lib/firebase/client";
 import type { Product } from "@/types/product";
 
+import { normalizeProductTypes } from "@/lib/shop/product-types";
+
 import { mapProductDoc } from "./mappers";
 
 type FetchProductsOptions = {
@@ -77,8 +79,8 @@ export async function fetchProductBySlug(slug: string): Promise<Product | null> 
 
 export async function fetchProductTypes(): Promise<string[]> {
   const products = await fetchProducts();
-  const types = new Set(products.map((product) => product.type).filter(Boolean));
-  return Array.from(types).sort();
+  const types = products.map((product) => product.type).filter(Boolean);
+  return normalizeProductTypes(types);
 }
 
 /** Admin: all Firestore products (no dummy merge). */

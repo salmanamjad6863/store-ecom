@@ -2,27 +2,94 @@ import Link from "next/link";
 
 import { env } from "@/lib/env";
 
-import { Container } from "../ui/container";
-import { Text } from "../ui/text";
+import { BrandLogo } from "./brand-logo";
+
+const shopLinks = [
+  { href: "/shop", label: "Friday Drop" },
+  { href: "/shop", label: "Signature Series" },
+  { href: "/shop", label: "Luxe Collection" },
+] as const;
+
+const helpLinks = [
+  { href: "/track-order", label: "Track Order" },
+  { href: "/cart", label: "Cart" },
+  { href: "/checkout", label: "Checkout" },
+] as const;
 
 export function Footer() {
   const year = new Date().getFullYear();
 
   return (
-    <footer className="mt-auto border-t border-muted/20 bg-surface">
-      <Container className="flex flex-col gap-4 py-8 sm:flex-row sm:items-center sm:justify-between">
-        <Text variant="small" as="p">
-          © {year} {env.storeName}. All rights reserved.
-        </Text>
-        <nav className="flex flex-wrap gap-4">
-          <Link href="/shop" className="text-sm text-muted hover:text-foreground">
-            Shop
-          </Link>
-          <Link href="/track-order" className="text-sm text-muted hover:text-foreground">
-            Track Order
-          </Link>
-        </nav>
-      </Container>
+    <footer className="mt-auto bg-deep text-cream">
+      <div className="mx-auto grid max-w-7xl gap-10 px-4 py-12 sm:grid-cols-2 sm:px-6 lg:grid-cols-4 lg:gap-12 lg:px-10 lg:py-16">
+        <div className="sm:col-span-2 lg:col-span-1">
+          <BrandLogo light className="mb-4 inline-block" />
+          <p className="max-w-sm text-sm leading-relaxed text-cream/40">
+            iPhone covers designed for the Pakistani woman who knows exactly what she wants — and
+            doesn&apos;t wait to get it.
+          </p>
+          <div className="mt-6 flex flex-wrap gap-2">
+            {["Instagram", "TikTok", "WhatsApp"].map((label) => (
+              <span
+                key={label}
+                className="border border-cream/10 bg-cream/5 px-3 py-2 text-[10px] uppercase tracking-[0.15em] text-cream/50"
+              >
+                {label}
+              </span>
+            ))}
+          </div>
+        </div>
+
+        <div>
+          <h4 className="mb-4 text-[10px] uppercase tracking-[0.3em] text-cream/35">Shop</h4>
+          <ul className="space-y-2.5">
+            {shopLinks.map((link) => (
+              <li key={link.label}>
+                <Link
+                  href={link.href}
+                  className="text-sm text-cream/55 transition-colors hover:text-blush"
+                >
+                  {link.label}
+                </Link>
+              </li>
+            ))}
+          </ul>
+        </div>
+
+        <div>
+          <h4 className="mb-4 text-[10px] uppercase tracking-[0.3em] text-cream/35">Help</h4>
+          <ul className="space-y-2.5">
+            {helpLinks.map((link) => (
+              <li key={link.label}>
+                <Link
+                  href={link.href}
+                  className="text-sm text-cream/55 transition-colors hover:text-blush"
+                >
+                  {link.label}
+                </Link>
+              </li>
+            ))}
+          </ul>
+        </div>
+
+        <div>
+          <h4 className="mb-4 text-[10px] uppercase tracking-[0.3em] text-cream/35">Brand</h4>
+          <ul className="space-y-2.5 text-sm text-cream/55">
+            <li>{env.storeName}</li>
+            <li>Cash on delivery</li>
+            <li>Free delivery Rs. 2,000+</li>
+          </ul>
+        </div>
+      </div>
+
+      <div className="border-t border-cream/10">
+        <div className="mx-auto flex max-w-7xl flex-col items-center justify-between gap-2 px-4 py-5 text-center sm:flex-row sm:px-6 sm:text-left lg:px-10">
+          <p className="text-[11px] tracking-wide text-cream/25">
+            © {year} {env.storeName}. All rights reserved.
+          </p>
+          <p className="text-[11px] tracking-wide text-cream/25">Made with ✦ for her.</p>
+        </div>
+      </div>
     </footer>
   );
 }

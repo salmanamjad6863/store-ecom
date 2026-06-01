@@ -1,44 +1,84 @@
-import Link from "next/link";
+"use client";
 
-import { env } from "@/lib/env";
+import Link from "next/link";
+import { useState } from "react";
+import { Menu, X } from "lucide-react";
+
+import { Button } from "@/components/ui/button";
 import { cn } from "@/lib/utils/cn";
 
-import { Container } from "../ui/container";
-
+import { BrandLogo } from "./brand-logo";
 import { CartNavLink } from "./cart-nav-link";
 
 const navLinks = [
-  { href: "/shop", label: "Shop", shortLabel: "Shop" },
-  { href: "/track-order", label: "Track Order", shortLabel: "Track" },
+  { href: "/shop", label: "Collection" },
+  { href: "/shop", label: "Drops" },
+  { href: "/track-order", label: "Track Order" },
 ] as const;
 
 export function Header() {
-  return (
-    <header className="border-b border-muted/20 bg-surface">
-      <Container className="flex h-14 items-center justify-between gap-2 sm:h-16 sm:gap-4">
-        <Link
-          href="/"
-          className="max-w-[40vw] truncate text-base font-semibold text-foreground sm:max-w-none sm:text-lg"
-        >
-          {env.storeName}
-        </Link>
+  const [menuOpen, setMenuOpen] = useState(false);
 
-        <nav className="flex shrink-0 items-center gap-0.5 sm:gap-2">
+  return (
+    <header className="sticky top-0 z-50 border-b border-deep/10 bg-cream/95 backdrop-blur-md">
+      <div className="flex h-14 w-full items-center justify-between gap-4 px-6 sm:h-16 sm:px-10 lg:px-14">
+        <BrandLogo />
+
+        <nav className="hidden items-center gap-8 md:flex">
           {navLinks.map((link) => (
             <Link
-              key={link.href}
+              key={link.label}
               href={link.href}
-              className={cn(
-                "rounded-lg px-2 py-2 text-xs font-medium text-foreground transition-colors hover:bg-background sm:px-3 sm:text-sm",
-              )}
+              className="text-xs font-medium uppercase tracking-[0.15em] text-foreground/60 transition-colors hover:text-foreground"
             >
-              <span className="sm:hidden">{link.shortLabel}</span>
-              <span className="hidden sm:inline">{link.label}</span>
+              {link.label}
             </Link>
           ))}
-          <CartNavLink />
         </nav>
-      </Container>
+
+        <div className="flex items-center gap-2 sm:gap-3">
+          <CartNavLink className="hidden sm:inline-flex" />
+          <Button href="/shop" size="sm" className="hidden sm:inline-flex">
+            Shop Now ✦
+          </Button>
+          <CartNavLink className="sm:hidden" />
+          <button
+            type="button"
+            className="inline-flex h-10 w-10 items-center justify-center rounded-none border border-deep/10 text-deep md:hidden"
+            aria-expanded={menuOpen}
+            aria-label={menuOpen ? "Close menu" : "Open menu"}
+            onClick={() => setMenuOpen((open) => !open)}
+          >
+            {menuOpen ? <X className="h-5 w-5" /> : <Menu className="h-5 w-5" />}
+          </button>
+        </div>
+      </div>
+
+      <div
+        className={cn(
+          "border-t border-deep/10 bg-cream md:hidden",
+          menuOpen ? "block" : "hidden",
+        )}
+      >
+        <nav className="flex w-full flex-col gap-1 px-6 py-3 sm:px-10 lg:px-14">
+          {navLinks.map((link) => (
+            <Link
+              key={link.label}
+              href={link.href}
+              className="py-2.5 text-xs font-medium uppercase tracking-[0.15em] text-foreground/70"
+              onClick={() => setMenuOpen(false)}
+            >
+              {link.label}
+            </Link>
+          ))}
+          <Button href="/shop" size="sm" className="mt-2 w-full" onClick={() => setMenuOpen(false)}>
+            Shop Now ✦
+          </Button>
+          <div className="mt-2 border-t border-deep/10 pt-3">
+            <CartNavLink />
+          </div>
+        </nav>
+      </div>
     </header>
   );
 }

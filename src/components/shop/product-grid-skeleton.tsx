@@ -11,7 +11,7 @@ export function ProductGridSkeleton({ count = 8, className }: ProductGridSkeleto
   return (
     <div
       className={cn(
-        "grid grid-cols-2 gap-3 sm:gap-4 md:gap-6 lg:grid-cols-3 xl:grid-cols-4",
+        "grid grid-cols-2 gap-x-3 gap-y-4 sm:gap-x-4 sm:gap-y-5 md:grid-cols-3 md:gap-x-6 lg:grid-cols-4",
         className,
       )}
       aria-busy="true"

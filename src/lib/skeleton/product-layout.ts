@@ -1,15 +1,16 @@
 import { getProductDisplayPrice, isProductSoldOut } from "@/lib/utils/product";
 import type { Product } from "@/types/product";
 
-/** Matches ProductCard type line. */
+/** Matches ProductCard subtitle (below title). */
 export const PRODUCT_CARD_TYPE_CLASSES =
-  "truncate text-[10px] uppercase tracking-wide sm:text-xs";
+  "truncate text-[10px] uppercase tracking-[0.14em] text-warm sm:text-[11px]";
 
-/** Matches ProductCard title — always reserves two lines (line-clamp-2). */
-export const PRODUCT_CARD_TITLE_CLASSES = "line-clamp-2 text-sm leading-snug sm:text-lg";
+/** Matches ProductCard title — centered, two lines max. */
+export const PRODUCT_CARD_TITLE_CLASSES =
+  "line-clamp-2 font-serif text-base font-semibold leading-snug text-deep sm:text-lg";
 
 /** Matches ProductCard price row. */
-export const PRODUCT_CARD_PRICE_CLASSES = "text-xs sm:text-base";
+export const PRODUCT_CARD_PRICE_CLASSES = "text-sm sm:text-base";
 
 export function estimateDescriptionLines(description: string, charsPerLine = 64): number {
   if (!description.trim()) {
@@ -28,12 +29,12 @@ export function getProductCardSkeletonFlags(product?: Product) {
     };
   }
 
-  const { compareAt } = getProductDisplayPrice(product);
+  const { compareAt, amount } = getProductDisplayPrice(product);
   const soldOut = isProductSoldOut(product);
 
   return {
     showBadge: soldOut || product.onSale,
-    showSalePrice: compareAt !== undefined && compareAt > getProductDisplayPrice(product).amount,
+    showSalePrice: compareAt !== undefined && compareAt > amount,
   };
 }
 

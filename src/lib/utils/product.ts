@@ -44,6 +44,75 @@ export function isProductSoldOut(product: Product): boolean {
   return product.quantity <= 0;
 }
 
+export function isProductLowStock(product: Product, threshold = 3): boolean {
+  return product.quantity > 0 && product.quantity <= threshold;
+}
+
+export function isProductNew(product: Product, days = 14): boolean {
+  const ms = days * 24 * 60 * 60 * 1000;
+  return Date.now() - product.createdAt.getTime() < ms;
+}
+
+export type ProductCardBadge = {
+  variant: "new" | "sale" | "soldOut" | "lowStock";
+  label: string;
+};
+
+/** One badge per card (top-right), highest priority first. */
+export function getPrimaryProductCardBadge(product: Product): ProductCardBadge | null {
+  if (isProductSoldOut(product)) {
+    return { variant: "soldOut", label: "Sold out" };
+  }
+
+  if (isProductLowStock(product)) {
+    return { variant: "lowStock", label: `${product.quantity} left` };
+  }
+
+  if (isProductNew(product)) {
+    return { variant: "new", label: "New" };
+  }
+
+  if (product.onSale) {
+    const percent = getProductSalePercent(product);
+    if (percent !== null) {
+      return { variant: "sale", label: formatSalePercentLabel(percent) };
+    }
+  }
+
+  return null;
+}
+
+/** Storefront product tile badges (top-right on cards). */
+export function getProductCardBadges(product: Product): ProductCardBadge[] {
+  const badges: ProductCardBadge[] = [];
+
+  if (isProductSoldOut(product)) {
+    badges.push({ variant: "soldOut", label: "Sold out" });
+    return badges;
+  }
+
+  if (isProductNew(product)) {
+    badges.push({ variant: "new", label: "New" });
+  }
+
+  if (product.onSale) {
+    const percent = getProductSalePercent(product);
+    badges.push({
+      variant: "sale",
+      label: percent !== null ? formatSalePercentLabel(percent) : "Sale",
+    });
+  }
+
+  if (isProductLowStock(product)) {
+    badges.push({
+      variant: "lowStock",
+      label: `${product.quantity} left`,
+    });
+  }
+
+  return badges;
+}
+
 export type ProductStatusBadge = {
   variant: "default" | "sale" | "soldOut";
   label: string;

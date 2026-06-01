@@ -1,10 +1,19 @@
 @import "tailwindcss";
 
 :root {
-  --background: #fafaf8;
-  --foreground: #1a1a1a;
-  --accent: #2d6a4f;
-  --muted: #6b7280;
+  --cream: #faf6f1;
+  --blush: #e8c4b8;
+  --rose: #c97b6b;
+  --deep: #2b1a14;
+  --warm: #7c4a3a;
+  --gold: #c9a96e;
+  --soft: #f0e8e0;
+  --text: #3d2417;
+
+  --background: var(--cream);
+  --foreground: var(--text);
+  --accent: var(--rose);
+  --muted: var(--warm);
   --surface: #ffffff;
   --danger: #b91c1c;
 }
@@ -16,12 +25,69 @@
   --color-muted: var(--muted);
   --color-surface: var(--surface);
   --color-danger: var(--danger);
-  --font-sans: var(--font-geist-sans);
-  --font-mono: var(--font-geist-mono);
+  --color-cream: var(--cream);
+  --color-blush: var(--blush);
+  --color-rose: var(--rose);
+  --color-deep: var(--deep);
+  --color-warm: var(--warm);
+  --color-gold: var(--gold);
+  --color-soft: var(--soft);
+  --font-sans: var(--font-dm-sans);
+  --font-serif: var(--font-playfair);
+  --font-display: var(--font-cormorant);
 }
 
 body {
   background: var(--background);
   color: var(--foreground);
-  font-family: var(--font-geist-sans), system-ui, sans-serif;
+  font-family: var(--font-dm-sans), system-ui, sans-serif;
+}
+
+.font-serif {
+  font-family: var(--font-playfair), Georgia, serif;
+}
+
+.font-display {
+  font-family: var(--font-cormorant), Georgia, serif;
+}
+
+@keyframes fade-up {
+  from {
+    opacity: 0;
+    transform: translateY(24px);
+  }
+  to {
+    opacity: 1;
+    transform: translateY(0);
+  }
+}
+
+@keyframes ticker {
+  from {
+    transform: translateX(0);
+  }
+  to {
+    transform: translateX(-50%);
+  }
+}
+
+@keyframes progress-in {
+  from {
+    width: 0%;
+  }
+  to {
+    width: 73%;
+  }
+}
+
+.animate-fade-up {
+  animation: fade-up 0.8s ease both;
+}
+
+.animate-ticker {
+  animation: ticker 20s linear infinite;
+}
+
+.animate-progress-in {
+  animation: progress-in 2s 1s ease both;
 }

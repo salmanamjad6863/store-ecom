@@ -3,15 +3,19 @@ import Link from "next/link";
 import { cn } from "@/lib/utils/cn";
 
 const variantStyles = {
-  primary: "bg-accent text-white hover:bg-accent/90",
-  secondary: "border border-muted/40 bg-surface text-foreground hover:bg-background",
-  ghost: "text-foreground hover:bg-background",
+  primary:
+    "bg-accent text-white hover:bg-warm uppercase tracking-widest font-medium",
+  secondary:
+    "border border-muted/40 bg-surface text-foreground hover:bg-soft uppercase tracking-wider",
+  ghost: "text-foreground hover:bg-soft",
+  outlineLight:
+    "border border-cream/30 bg-transparent text-cream hover:border-blush hover:text-blush uppercase tracking-widest",
 } as const;
 
 const sizeStyles = {
-  sm: "h-9 px-3 text-sm",
-  md: "h-11 px-5 text-sm",
-  lg: "h-12 px-6 text-base",
+  sm: "h-9 px-3 text-xs",
+  md: "h-11 px-5 text-xs sm:text-sm",
+  lg: "h-12 px-6 text-sm",
 } as const;
 
 type ButtonVariant = keyof typeof variantStyles;
@@ -35,7 +39,7 @@ export function Button({
   ...props
 }: ButtonProps) {
   const classes = cn(
-    "inline-flex items-center justify-center rounded-lg font-medium transition-colors focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-accent focus-visible:ring-offset-2 disabled:pointer-events-none disabled:opacity-50",
+    "inline-flex items-center justify-center rounded-none font-medium transition-colors focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-accent focus-visible:ring-offset-2 disabled:pointer-events-none disabled:opacity-50",
     variantStyles[variant],
     sizeStyles[size],
     className,

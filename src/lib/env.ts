@@ -62,7 +62,7 @@ function parsePublicEnv() {
     adminEmails: data.NEXT_PUBLIC_ADMIN_EMAILS.split(",")
       .map((email) => email.trim().toLowerCase())
       .filter(Boolean),
-    storeName: data.NEXT_PUBLIC_STORE_NAME ?? "Ecom Store",
+    storeName: data.NEXT_PUBLIC_STORE_NAME ?? "iBloom Elara",
     currency: {
       code: data.NEXT_PUBLIC_CURRENCY_CODE ?? "PKR",
       locale: data.NEXT_PUBLIC_CURRENCY_LOCALE ?? "en-PK",

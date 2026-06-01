@@ -1,10 +1,7 @@
 import { Badge } from "@/components/ui/badge";
-import {
-  formatSalePercentLabel,
-  getProductSalePercent,
-  isProductSoldOut,
-} from "@/lib/utils/product";
+import { getProductCardBadges } from "@/lib/utils/product";
 import type { Product } from "@/types/product";
+import { cn } from "@/lib/utils/cn";
 
 type ProductBadgesProps = {
   product: Product;
@@ -12,21 +9,19 @@ type ProductBadgesProps = {
 };
 
 export function ProductBadges({ product, className }: ProductBadgesProps) {
-  const soldOut = isProductSoldOut(product);
-  const salePercent = getProductSalePercent(product);
+  const badges = getProductCardBadges(product);
+
+  if (badges.length === 0) {
+    return null;
+  }
 
   return (
-    <div className={className}>
-      {soldOut ? (
-        <Badge variant="soldOut" className="px-1.5 py-0 text-[10px] sm:px-2.5 sm:text-xs">
-          Sold out
+    <div className={cn("flex flex-col items-end gap-1", className)}>
+      {badges.map((badge) => (
+        <Badge key={badge.label} variant={badge.variant}>
+          {badge.label}
         </Badge>
-      ) : null}
-      {!soldOut && product.onSale ? (
-        <Badge variant="sale" className="px-1.5 py-0 text-[10px] sm:px-2.5 sm:text-xs">
-          {salePercent !== null ? formatSalePercentLabel(salePercent) : "Sale"}
-        </Badge>
-      ) : null}
+      ))}
     </div>
   );
 }
