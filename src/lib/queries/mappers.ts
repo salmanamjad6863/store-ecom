@@ -23,6 +23,7 @@ export function mapProductDoc(
     images: data.images ?? [],
     price: data.price,
     salePrice: data.salePrice,
+    salePercent: data.salePercent,
     onSale: data.onSale ?? false,
     quantity: data.quantity ?? 0,
     hidden: data.hidden ?? false,

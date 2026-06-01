@@ -12,15 +12,9 @@ import { Spinner } from "@/components/ui/spinner";
 import { Text } from "@/components/ui/text";
 import { useAuth } from "@/hooks/use-auth";
 import { useOrdersByUserId } from "@/hooks/use-orders";
-import { formatCurrency } from "@/lib/utils/format";
 import { env } from "@/lib/env";
-
-const STATUS_LABELS = {
-  pending: "Pending",
-  transferred: "Transferred",
-  delivered: "Delivered",
-  cancelled: "Cancelled",
-} as const;
+import { formatCurrency } from "@/lib/utils/format";
+import { getCustomerStatusLabel } from "@/lib/utils/order-status";
 
 export function AccountOrdersContent() {
   const router = useRouter();
@@ -89,7 +83,7 @@ export function AccountOrdersContent() {
                   <Text variant="small" as="p">
                     {order.createdAt.toLocaleDateString()} · {order.items.length}{" "}
                     {order.items.length === 1 ? "item" : "items"} ·{" "}
-                    {STATUS_LABELS[order.status]}
+                    {getCustomerStatusLabel(order.status)}
                   </Text>
                   <Text variant="small" as="p" className="text-muted">
                     {formatCurrency(order.total, env.currency.code, env.currency.locale)}

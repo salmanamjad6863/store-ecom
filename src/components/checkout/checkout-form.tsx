@@ -1,6 +1,7 @@
 "use client";
 
 import { zodResolver } from "@hookform/resolvers/zod";
+import { useQueryClient } from "@tanstack/react-query";
 import { useEffect, useState } from "react";
 import { useForm } from "react-hook-form";
 import { useRouter } from "next/navigation";
@@ -14,11 +15,19 @@ import { Price } from "@/components/ui/price";
 import { Text } from "@/components/ui/text";
 import { Textarea } from "@/components/ui/textarea";
 import { useAuth } from "@/hooks/use-auth";
+import { queryKeys } from "@/lib/queries/keys";
+import { isValidPkPhone, normalizePkPhone } from "@/lib/validation/phone";
+import { useToast } from "@/providers/toast-provider";
 import type { CartItem } from "@/types/cart";
 
 const checkoutSchema = z.object({
   name: z.string().min(2, "Name is required"),
-  phone: z.string().min(10, "Enter a valid phone number"),
+  phone: z
+    .string()
+    .min(10, "Enter a valid Pakistani mobile number")
+    .refine((value) => isValidPkPhone(value), {
+      message: "Use format 03XX XXXXXXX or +92 3XX XXXXXXX",
+    }),
   email: z.string().email("Enter a valid email"),
   addressLine1: z.string().min(5, "Address is required"),
   city: z.string().min(2, "City is required"),
@@ -36,7 +45,9 @@ type CheckoutFormProps = {
 
 export function CheckoutForm({ items, subtotal, onCompletingChange }: CheckoutFormProps) {
   const router = useRouter();
+  const queryClient = useQueryClient();
   const { user } = useAuth();
+  const { toast } = useToast();
   const [submitError, setSubmitError] = useState<string | null>(null);
 
   const {
@@ -68,7 +79,7 @@ export function CheckoutForm({ items, subtotal, onCompletingChange }: CheckoutFo
 
     const customer = {
       name: values.name.trim(),
-      phone: values.phone.trim(),
+      phone: normalizePkPhone(values.phone.trim()),
       email: values.email.trim(),
       addressLine1: values.addressLine1.trim(),
       city: values.city.trim(),
@@ -98,6 +109,13 @@ export function CheckoutForm({ items, subtotal, onCompletingChange }: CheckoutFo
         return;
       }
 
+      await Promise.all([
+        queryClient.invalidateQueries({ queryKey: queryKeys.products.all }),
+        user?.uid
+          ? queryClient.invalidateQueries({ queryKey: queryKeys.orders.byUser(user.uid) })
+          : Promise.resolve(),
+      ]);
+
       onCompletingChange?.(true);
 
       const trackParams = new URLSearchParams({
@@ -106,6 +124,7 @@ export function CheckoutForm({ items, subtotal, onCompletingChange }: CheckoutFo
         email: "pending",
       });
 
+      toast("Order placed! Save your order ID on the next screen.", "success");
       router.replace(`/track-order?${trackParams.toString()}`);
     } catch {
       setSubmitError("Could not place your order. Please try again.");
@@ -138,8 +157,14 @@ export function CheckoutForm({ items, subtotal, onCompletingChange }: CheckoutFo
           </div>
 
           <div className="space-y-2">
-            <Label htmlFor="phone">Phone</Label>
-            <Input id="phone" type="tel" autoComplete="tel" {...register("phone")} />
+            <Label htmlFor="phone">Phone (Pakistan)</Label>
+            <Input
+              id="phone"
+              type="tel"
+              autoComplete="tel"
+              placeholder="03XX XXXXXXX"
+              {...register("phone")}
+            />
             {errors.phone ? (
               <Text variant="small" as="p" className="text-danger">
                 {errors.phone.message}
@@ -196,7 +221,8 @@ export function CheckoutForm({ items, subtotal, onCompletingChange }: CheckoutFo
             Cash on Delivery (COD)
           </Text>
           <Text variant="small" as="p" className="mt-2 text-muted">
-            Pay with cash when your order is delivered.
+            Pay with cash when your order is delivered. Please keep your phone reachable for
+            delivery confirmation.
           </Text>
         </div>
 
@@ -227,7 +253,7 @@ export function CheckoutForm({ items, subtotal, onCompletingChange }: CheckoutFo
         </ul>
         <div className="flex items-center justify-between">
           <Text variant="h2" as="span" className="text-lg">
-            Total
+            Total (COD)
           </Text>
           <Price amount={subtotal} className="text-lg" />
         </div>

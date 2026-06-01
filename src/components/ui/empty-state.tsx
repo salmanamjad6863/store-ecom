@@ -1,7 +1,5 @@
 import { cn } from "@/lib/utils/cn";
 
-import { Text } from "./text";
-
 type EmptyStateProps = {
   title: string;
   description?: string;
@@ -13,17 +11,13 @@ export function EmptyState({ title, description, action, className }: EmptyState
   return (
     <div
       className={cn(
-        "flex flex-col items-center justify-center gap-4 rounded-xl border border-dashed border-muted/30 bg-surface px-6 py-12 text-center",
+        "flex flex-col items-center justify-center gap-4 border border-dashed border-deep/15 bg-surface px-6 py-12 text-center",
         className,
       )}
     >
-      <Text variant="h2" as="h2">
-        {title}
-      </Text>
+      <h2 className="font-serif text-xl font-semibold text-deep sm:text-2xl">{title}</h2>
       {description ? (
-        <Text variant="muted" as="p" className="max-w-sm">
-          {description}
-        </Text>
+        <p className="max-w-sm text-sm leading-relaxed text-warm">{description}</p>
       ) : null}
       {action}
     </div>

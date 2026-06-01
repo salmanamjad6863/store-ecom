@@ -1,19 +1,9 @@
 import { cn } from "@/lib/utils/cn";
+import {
+  CUSTOMER_STATUS_DESCRIPTIONS,
+  CUSTOMER_STATUS_LABELS,
+} from "@/lib/utils/order-status";
 import type { OrderStatus } from "@/types/order";
-
-const STATUS_LABELS: Record<OrderStatus, string> = {
-  pending: "Pending",
-  transferred: "Transferred",
-  delivered: "Delivered",
-  cancelled: "Cancelled",
-};
-
-const STATUS_DESCRIPTIONS: Record<OrderStatus, string> = {
-  pending: "We received your order and are preparing it.",
-  transferred: "Your order has been handed off for delivery.",
-  delivered: "Your order has been delivered.",
-  cancelled: "This order was cancelled.",
-};
 
 const FLOW_STATUSES: OrderStatus[] = ["pending", "transferred", "delivered"];
 
@@ -25,8 +15,8 @@ export function OrderStatusTimeline({ status }: OrderStatusTimelineProps) {
   if (status === "cancelled") {
     return (
       <div className="rounded-lg border border-danger/30 bg-background p-4">
-        <p className="font-medium text-danger">{STATUS_LABELS.cancelled}</p>
-        <p className="mt-1 text-sm text-muted">{STATUS_DESCRIPTIONS.cancelled}</p>
+        <p className="font-medium text-danger">{CUSTOMER_STATUS_LABELS.cancelled}</p>
+        <p className="mt-1 text-sm text-muted">{CUSTOMER_STATUS_DESCRIPTIONS.cancelled}</p>
       </div>
     );
   }
@@ -58,10 +48,12 @@ export function OrderStatusTimeline({ status }: OrderStatusTimelineProps) {
                   isCurrent ? "text-accent" : isComplete ? "text-foreground" : "text-muted",
                 )}
               >
-                {STATUS_LABELS[stepStatus]}
+                {CUSTOMER_STATUS_LABELS[stepStatus]}
                 {isCurrent ? " (current)" : null}
               </p>
-              <p className="mt-1 text-sm text-muted">{STATUS_DESCRIPTIONS[stepStatus]}</p>
+              <p className="mt-1 text-sm text-muted">
+                {CUSTOMER_STATUS_DESCRIPTIONS[stepStatus]}
+              </p>
             </div>
           </li>
         );

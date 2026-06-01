@@ -1,26 +1,37 @@
 import type { Metadata } from "next";
-import { Geist, Geist_Mono } from "next/font/google";
+import { Cormorant_Garamond, DM_Sans, Playfair_Display } from "next/font/google";
 
 import { LayoutSwitcher } from "@/components/layout/layout-switcher";
 import { env } from "@/lib/env";
 import { AuthProvider } from "@/providers/auth-provider";
 import { QueryProvider } from "@/providers/query-provider";
+import { ToastProvider } from "@/providers/toast-provider";
 
 import "./globals.css";
 
-const geistSans = Geist({
-  variable: "--font-geist-sans",
+const dmSans = DM_Sans({
+  variable: "--font-dm-sans",
   subsets: ["latin"],
+  weight: ["300", "400", "500"],
 });
 
-const geistMono = Geist_Mono({
-  variable: "--font-geist-mono",
+const playfair = Playfair_Display({
+  variable: "--font-playfair",
   subsets: ["latin"],
+  weight: ["400", "700", "900"],
+  style: ["normal", "italic"],
+});
+
+const cormorant = Cormorant_Garamond({
+  variable: "--font-cormorant",
+  subsets: ["latin"],
+  weight: ["300", "500"],
+  style: ["italic"],
 });
 
 export const metadata: Metadata = {
   title: env.storeName,
-  description: `${env.storeName} — shop online with cash on delivery`,
+  description: `${env.storeName} — shop online with cash on delivery.`,
 };
 
 export default function RootLayout({
@@ -31,12 +42,14 @@ export default function RootLayout({
   return (
     <html
       lang="en"
-      className={`${geistSans.variable} ${geistMono.variable} min-h-dvh antialiased`}
+      className={`${dmSans.variable} ${playfair.variable} ${cormorant.variable} min-h-dvh antialiased`}
     >
-      <body className="flex min-h-dvh flex-col">
+      <body className="flex min-h-dvh flex-col bg-background text-foreground">
         <QueryProvider>
           <AuthProvider>
-            <LayoutSwitcher>{children}</LayoutSwitcher>
+            <ToastProvider>
+              <LayoutSwitcher>{children}</LayoutSwitcher>
+            </ToastProvider>
           </AuthProvider>
         </QueryProvider>
       </body>

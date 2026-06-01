@@ -3,6 +3,7 @@
 import { useQuery } from "@tanstack/react-query";
 
 import { queryKeys } from "@/lib/queries/keys";
+import { productQueryDefaults } from "@/lib/queries/product-query-options";
 import { fetchProducts, fetchProductTypes } from "@/lib/queries/products";
 
 type UseProductsOptions = {
@@ -16,6 +17,8 @@ export function useProducts(options: UseProductsOptions = {}) {
   return useQuery({
     queryKey: queryKeys.products.list(type),
     queryFn: () => fetchProducts({ type, includeHidden }),
+    ...productQueryDefaults,
+    placeholderData: (previousData) => previousData,
   });
 }
 
@@ -23,5 +26,6 @@ export function useProductTypes() {
   return useQuery({
     queryKey: queryKeys.products.types,
     queryFn: fetchProductTypes,
+    ...productQueryDefaults,
   });
 }

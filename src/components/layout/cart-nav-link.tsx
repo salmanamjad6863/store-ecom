@@ -6,7 +6,11 @@ import Link from "next/link";
 import { cn } from "@/lib/utils/cn";
 import { useCartStore, selectCartItemCount } from "@/stores/cart-store";
 
-export function CartNavLink() {
+type CartNavLinkProps = {
+  className?: string;
+};
+
+export function CartNavLink({ className }: CartNavLinkProps = {}) {
   const cartCount = useCartStore(selectCartItemCount);
 
   return (
@@ -14,7 +18,8 @@ export function CartNavLink() {
       href="/cart"
       aria-label={cartCount > 0 ? `Cart, ${cartCount} items` : "Cart"}
       className={cn(
-        "relative inline-flex h-9 w-9 items-center justify-center rounded-lg text-foreground transition-colors hover:bg-background sm:h-10 sm:w-10",
+        "relative inline-flex h-9 w-9 items-center justify-center text-deep transition-colors hover:text-accent sm:h-10 sm:w-10",
+        className,
       )}
     >
       <ShoppingBag className="h-5 w-5" strokeWidth={1.75} aria-hidden />

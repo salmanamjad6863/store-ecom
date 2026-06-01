@@ -1,6 +1,8 @@
-import type { Order } from "@/types/order";
+import type { Order, OrderStatus } from "@/types/order";
 
 export type OrderMonthFilter = "all" | "this_month";
+
+export type OrderStatusFilter = "all" | OrderStatus;
 
 export function isSameCalendarMonth(a: Date, b: Date): boolean {
   return a.getFullYear() === b.getFullYear() && a.getMonth() === b.getMonth();
@@ -16,6 +18,17 @@ export function filterOrdersByMonth(
   }
 
   return orders.filter((order) => isSameCalendarMonth(order.createdAt, referenceDate));
+}
+
+export function filterOrdersByStatus(
+  orders: Order[],
+  filter: OrderStatusFilter,
+): Order[] {
+  if (filter === "all") {
+    return orders;
+  }
+
+  return orders.filter((order) => order.status === filter);
 }
 
 export function getMonthlyOrderStats(orders: Order[], referenceDate = new Date()) {

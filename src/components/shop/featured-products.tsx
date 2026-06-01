@@ -3,15 +3,17 @@
 import { Button } from "@/components/ui/button";
 import { Container } from "@/components/ui/container";
 import { EmptyState } from "@/components/ui/empty-state";
-import { Spinner } from "@/components/ui/spinner";
 import { Text } from "@/components/ui/text";
 import { useProducts } from "@/hooks/use-products";
+import { cn } from "@/lib/utils/cn";
 
 import { ProductGrid } from "./product-grid";
+import { ProductGridSkeleton } from "./product-grid-skeleton";
 
 export function FeaturedProducts() {
-  const { data: products, isLoading, isError } = useProducts();
+  const { data: products, isPending, isError, isFetching } = useProducts();
   const featured = products?.slice(0, 4) ?? [];
+  const showSkeleton = isPending && !products;
 
   return (
     <section className="border-t border-muted/20 bg-surface py-10 sm:py-16">
@@ -30,11 +32,7 @@ export function FeaturedProducts() {
           </Button>
         </div>
 
-        {isLoading ? (
-          <div className="flex justify-center py-12">
-            <Spinner size="lg" />
-          </div>
-        ) : null}
+        {showSkeleton ? <ProductGridSkeleton count={4} className="lg:grid-cols-4" /> : null}
 
         {isError ? (
           <EmptyState
@@ -48,11 +46,15 @@ export function FeaturedProducts() {
           />
         ) : null}
 
-        {!isLoading && !isError && featured.length > 0 ? (
-          <ProductGrid products={featured} />
+        {!showSkeleton && !isError && featured.length > 0 ? (
+          <div
+            className={cn("transition-opacity duration-200", isFetching && "opacity-60")}
+          >
+            <ProductGrid products={featured} />
+          </div>
         ) : null}
 
-        {!isLoading && !isError && featured.length === 0 ? (
+        {!showSkeleton && !isError && featured.length === 0 ? (
           <EmptyState
             title="No products yet"
             description="Add products in Firebase to see them here."

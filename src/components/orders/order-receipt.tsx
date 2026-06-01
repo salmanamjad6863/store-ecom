@@ -3,6 +3,7 @@ import { CheckCircle2 } from "lucide-react";
 
 import { Button } from "@/components/ui/button";
 import { Card } from "@/components/ui/card";
+import { CopyButton } from "@/components/ui/copy-button";
 import { Price } from "@/components/ui/price";
 import { Text } from "@/components/ui/text";
 import type { Order } from "@/types/order";
@@ -83,19 +84,29 @@ export function OrderReceipt({
       ) : null}
 
       <Card className="space-y-6">
-        <div className="rounded-lg border border-accent/30 bg-background p-4 text-center">
-          <Text variant="small" as="p" className="text-muted">
-            Order ID
-          </Text>
-          <Text variant="h2" as="p" className="mt-1 break-all font-mono text-sm">
-            {order.id}
-          </Text>
-          <Text variant="small" as="p" className="mt-4 text-muted">
-            Order number
-          </Text>
-          <Text variant="body" as="p" className="mt-1 font-mono text-lg">
-            {order.orderNumber}
-          </Text>
+        <div className="rounded-lg border border-accent/30 bg-background p-4">
+          <div className="text-center">
+            <Text variant="small" as="p" className="text-muted">
+              Order ID
+            </Text>
+            <Text variant="h2" as="p" className="mt-1 break-all font-mono text-sm">
+              {order.id}
+            </Text>
+            <div className="mt-3 flex justify-center">
+              <CopyButton value={order.id} label="Copy order ID" />
+            </div>
+            </div>
+          <div className="mt-6 border-t border-muted/20 pt-4 text-center">
+            <Text variant="small" as="p" className="text-muted">
+              Order number
+            </Text>
+            <Text variant="body" as="p" className="mt-1 font-mono text-lg">
+              {order.orderNumber}
+            </Text>
+            <div className="mt-3 flex justify-center">
+              <CopyButton value={order.orderNumber} label="Copy order number" />
+            </div>
+            </div>
         </div>
 
         {showTimeline ? <OrderStatusTimeline status={order.status} /> : null}
