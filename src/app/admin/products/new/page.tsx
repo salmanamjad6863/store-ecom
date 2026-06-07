@@ -18,12 +18,15 @@ export default function AdminNewProductPage() {
           ← Back to products
         </Link>
         <Text variant="h1" as="h1" className="mt-2">
-          Add product
+          Add case design
+        </Text>
+        <Text variant="muted" as="p" className="mt-2">
+          One product with shared pricing — add all colors, models, and stock in one place.
         </Text>
       </div>
 
       <ProductForm
-        submitLabel="Create product"
+        submitLabel="Publish design"
         isSubmitting={createMutation.isPending}
         onSubmit={async (input) => {
           await createMutation.mutateAsync(input);

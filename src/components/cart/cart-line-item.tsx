@@ -7,15 +7,16 @@ import { Minus, Plus, Trash2 } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Price } from "@/components/ui/price";
 import { Text } from "@/components/ui/text";
-import type { CartItem } from "@/types/cart";
+import { getCartLineKey, type CartItem } from "@/types/cart";
 
 type CartLineItemProps = {
   item: CartItem;
-  onUpdateQuantity: (productId: string, quantity: number) => void;
-  onRemove: (productId: string) => void;
+  onUpdateQuantity: (lineKey: string, quantity: number) => void;
+  onRemove: (lineKey: string) => void;
 };
 
 export function CartLineItem({ item, onUpdateQuantity, onRemove }: CartLineItemProps) {
+  const lineKey = getCartLineKey(item.productId, item.colorId, item.variantId);
   const lineTotal = item.unitPrice * item.quantity;
   const atMax = item.quantity >= item.maxQuantity;
 
@@ -47,6 +48,11 @@ export function CartLineItem({ item, onUpdateQuantity, onRemove }: CartLineItemP
               {item.name}
             </Text>
           </Link>
+          {item.modelName && item.colorName ? (
+            <Text variant="small" as="p" className="text-muted">
+              {item.modelName} · {item.colorName}
+            </Text>
+          ) : null}
           <div className="flex flex-wrap items-center gap-x-3 gap-y-0.5 text-xs sm:gap-x-4 sm:text-sm">
             <span className="text-muted">
               Unit: <Price amount={item.unitPrice} />
@@ -69,7 +75,7 @@ export function CartLineItem({ item, onUpdateQuantity, onRemove }: CartLineItemP
               variant="secondary"
               size="sm"
               aria-label="Decrease quantity"
-              onClick={() => onUpdateQuantity(item.productId, item.quantity - 1)}
+              onClick={() => onUpdateQuantity(lineKey, item.quantity - 1)}
             >
               <Minus className="h-4 w-4" />
             </Button>
@@ -80,7 +86,7 @@ export function CartLineItem({ item, onUpdateQuantity, onRemove }: CartLineItemP
               size="sm"
               aria-label="Increase quantity"
               disabled={atMax}
-              onClick={() => onUpdateQuantity(item.productId, item.quantity + 1)}
+              onClick={() => onUpdateQuantity(lineKey, item.quantity + 1)}
             >
               <Plus className="h-4 w-4" />
             </Button>
@@ -91,7 +97,7 @@ export function CartLineItem({ item, onUpdateQuantity, onRemove }: CartLineItemP
             variant="ghost"
             size="sm"
             className="h-8 px-2 text-muted hover:text-danger sm:h-9"
-            onClick={() => onRemove(item.productId)}
+            onClick={() => onRemove(lineKey)}
             aria-label="Remove item"
           >
             <Trash2 className="h-4 w-4 sm:mr-1.5" />

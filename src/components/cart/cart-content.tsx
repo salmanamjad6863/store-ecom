@@ -11,6 +11,7 @@ import { Text } from "@/components/ui/text";
 import { useCart } from "@/hooks/use-cart";
 import { useRevalidateCart } from "@/hooks/use-revalidate-cart";
 import { useToast } from "@/providers/toast-provider";
+import { getCartLineKey } from "@/types/cart";
 
 import { CartLineItem } from "./cart-line-item";
 import { CartMobileBar } from "./cart-mobile-bar";
@@ -85,7 +86,7 @@ export function CartContent() {
           <ul className="rounded-xl border border-muted/20 bg-surface px-3 sm:px-6">
             {items.map((item) => (
               <CartLineItem
-                key={item.productId}
+                key={getCartLineKey(item.productId, item.colorId, item.variantId)}
                 item={item}
                 onUpdateQuantity={updateQuantity}
                 onRemove={removeItem}

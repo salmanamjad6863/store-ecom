@@ -154,7 +154,7 @@ export function AdminOrderDetail({ orderId }: AdminOrderDetailProps) {
         <ul className="divide-y divide-muted/20">
           {order.items.map((item) => (
             <li
-              key={`${item.productId}-${item.slug}`}
+              key={`${item.productId}-${item.variantId ?? item.slug}`}
               className="flex gap-4 py-4 first:pt-0 last:pb-0"
             >
               {item.image ? (
@@ -173,8 +173,13 @@ export function AdminOrderDetail({ orderId }: AdminOrderDetailProps) {
                   <Text variant="body" as="p" className="font-medium">
                     {item.name}
                   </Text>
+                  {item.modelName && item.colorName ? (
+                    <Text variant="small" as="p" className="text-muted">
+                      {item.modelName} · {item.colorName}
+                    </Text>
+                  ) : null}
                   <Text variant="small" as="p">
-                    Qty {item.quantity} · {item.slug}
+                    Qty {item.quantity}
                   </Text>
                 </div>
                 <Price amount={item.unitPrice * item.quantity} />

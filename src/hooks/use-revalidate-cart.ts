@@ -7,7 +7,7 @@ import {
   syncCartItems,
   type CartSyncResult,
 } from "@/lib/cart/sync-cart";
-import { fetchProductsByIds } from "@/lib/queries/products";
+import { fetchProductsWithVariantsByIds } from "@/lib/queries/products";
 import { useCartStore } from "@/stores/cart-store";
 
 export function useRevalidateCart() {
@@ -27,7 +27,7 @@ export function useRevalidateCart() {
 
     try {
       const productIds = items.map((item) => item.productId);
-      const products = await fetchProductsByIds(productIds);
+      const products = await fetchProductsWithVariantsByIds(productIds);
       const productsById = buildProductMap(products);
       const { nextItems, result } = syncCartItems(items, productsById);
 

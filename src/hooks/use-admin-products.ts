@@ -7,7 +7,7 @@ import {
   createProduct,
   deleteProduct,
   fetchAdminProducts,
-  fetchProductById,
+  fetchProductWithVariantsById,
   updateProduct,
   type ProductInput,
 } from "@/lib/queries/products";
@@ -21,8 +21,8 @@ export function useAdminProducts() {
 
 export function useAdminProduct(id: string) {
   return useQuery({
-    queryKey: queryKeys.products.adminDetail(id),
-    queryFn: () => fetchProductById(id),
+    queryKey: queryKeys.products.adminDetailWithVariants(id),
+    queryFn: () => fetchProductWithVariantsById(id),
     enabled: Boolean(id),
   });
 }

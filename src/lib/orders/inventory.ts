@@ -6,7 +6,7 @@ import {
 } from "firebase/firestore";
 
 import { isDummyProductId } from "@/lib/data/dummy-products";
-import { COLLECTIONS } from "@/lib/firebase/collections";
+import { COLLECTIONS, SUBCOLLECTIONS } from "@/lib/firebase/collections";
 import type { Order, OrderStatus } from "@/types/order";
 
 export function shouldRestoreStockOnCancel(
@@ -25,26 +25,92 @@ export async function restoreOrderStock(db: Firestore, order: Order): Promise<vo
   }
 
   await runTransaction(db, async (transaction) => {
-    const productRefs = restorableItems.map((item) =>
-      doc(db, COLLECTIONS.products, item.productId),
-    );
+    type RestoreTarget =
+      | {
+          kind: "variant";
+          item: (typeof restorableItems)[number];
+          variantRef: ReturnType<typeof doc>;
+          productRef: ReturnType<typeof doc>;
+        }
+      | {
+          kind: "product";
+          item: (typeof restorableItems)[number];
+          productRef: ReturnType<typeof doc>;
+        };
+
+    const targets: RestoreTarget[] = restorableItems.map((item) => {
+      if (item.variantId) {
+        return {
+          kind: "variant" as const,
+          item,
+          variantRef: doc(
+            db,
+            COLLECTIONS.products,
+            item.productId,
+            SUBCOLLECTIONS.variants,
+            item.variantId,
+          ),
+          productRef: doc(db, COLLECTIONS.products, item.productId),
+        };
+      }
+
+      return {
+        kind: "product" as const,
+        item,
+        productRef: doc(db, COLLECTIONS.products, item.productId),
+      };
+    });
 
     const snapshots = await Promise.all(
-      productRefs.map((productRef) => transaction.get(productRef)),
+      targets.map((target) => {
+        if (target.kind === "variant") {
+          return Promise.all([
+            transaction.get(target.variantRef),
+            transaction.get(target.productRef),
+          ]);
+        }
+
+        return Promise.all([transaction.get(target.productRef)]);
+      }),
     );
 
-    for (let index = 0; index < restorableItems.length; index += 1) {
-      const item = restorableItems[index];
-      const snapshot = snapshots[index];
+    for (let index = 0; index < targets.length; index += 1) {
+      const target = targets[index];
 
-      if (!snapshot.exists()) {
+      if (target.kind === "variant") {
+        const variantSnapshot = snapshots[index][0];
+        const productSnapshot = snapshots[index][1];
+
+        if (variantSnapshot?.exists()) {
+          const currentStock = variantSnapshot.data()?.quantity ?? 0;
+          transaction.update(target.variantRef, {
+            quantity: currentStock + target.item.quantity,
+            updatedAt: serverTimestamp(),
+          });
+        }
+
+        if (productSnapshot?.exists()) {
+          const currentTotal = productSnapshot.data()?.totalQuantity ?? 0;
+          transaction.update(target.productRef, {
+            totalQuantity: currentTotal + target.item.quantity,
+            quantity: currentTotal + target.item.quantity,
+            updatedAt: serverTimestamp(),
+          });
+        }
+
         continue;
       }
 
-      const currentStock = snapshot.data()?.quantity ?? 0;
+      const productSnapshot = snapshots[index][0];
 
-      transaction.update(productRefs[index], {
-        quantity: currentStock + item.quantity,
+      if (!productSnapshot.exists()) {
+        continue;
+      }
+
+      const currentStock = productSnapshot.data()?.quantity ?? 0;
+
+      transaction.update(target.productRef, {
+        quantity: currentStock + target.item.quantity,
         updatedAt: serverTimestamp(),
       });
     }

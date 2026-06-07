@@ -19,7 +19,7 @@ export function CartSyncNotice({ result }: CartSyncNoticeProps) {
       </Text>
       <ul className="mt-2 list-inside list-disc space-y-1">
         {result.issues.map((issue) => (
-          <li key={`${issue.productId}-${issue.type}`} className="text-sm text-muted">
+          <li key={`${issue.lineKey}-${issue.type}`} className="text-sm text-muted">
             {issue.message}
           </li>
         ))}

@@ -43,13 +43,16 @@ export default function AdminEditProductPage() {
           ← Back to products
         </Link>
         <Text variant="h1" as="h1" className="mt-2">
-          Edit product
+          Edit {product.name}
+        </Text>
+        <Text variant="muted" as="p" className="mt-2">
+          All colors for this design — edit tabs to update each color.
         </Text>
       </div>
 
       <ProductForm
         product={product}
-        submitLabel="Update product"
+        submitLabel="Save design"
         isSubmitting={updateMutation.isPending}
         onSubmit={async (input) => {
           await updateMutation.mutateAsync({ id: productId, input });

@@ -1,0 +1,42 @@
+rules_version = '2';
+service cloud.firestore {
+  match /databases/{database}/documents {
+    function isAdmin() {
+      return request.auth != null
+        && request.auth.token.email in [
+          // Replace with your admin email(s) — must match NEXT_PUBLIC_ADMIN_EMAILS
+          "admin@example.com"
+        ];
+    }
+
+    function isOwner(userId) {
+      return request.auth != null && request.auth.uid == userId;
+    }
+
+    match /products/{productId} {
+      allow read: if resource.data.hidden == false || isAdmin();
+      allow write: if isAdmin();
+
+      match /variants/{variantId} {
+        allow read: if true;
+        allow write: if isAdmin();
+      }
+    }
+
+    match /phoneModels/{id} {
+      allow read: if true;
+      allow write: if isAdmin();
+    }
+
+    match /orders/{id} {
+      allow create: if request.resource.data.paymentMethod == 'cod'
+        && request.resource.data.keys().hasAll(['orderNumber', 'status', 'items', 'customer', 'total']);
+      allow read: if isAdmin() || (isOwner(resource.data.userId));
+      allow update: if isAdmin();
+    }
+
+    match /users/{userId} {
+      allow read, write: if isOwner(userId);
+    }
+  }
+}
