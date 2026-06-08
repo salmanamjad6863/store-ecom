@@ -2,13 +2,15 @@
 
 import Link from "next/link";
 import { usePathname } from "next/navigation";
-import { LayoutGrid, Package, ShoppingBag } from "lucide-react";
+import { LayoutGrid, Package, ShoppingBag, Smartphone, Star } from "lucide-react";
 
 import { cn } from "@/lib/utils/cn";
 import { env } from "@/lib/env";
 
 const navItems = [
   { href: "/admin/products", label: "Products", icon: Package },
+  { href: "/admin/featured", label: "Home featured", icon: Star },
+  { href: "/admin/phone-models", label: "iPhone models", icon: Smartphone },
   { href: "/admin/orders", label: "Orders", icon: ShoppingBag },
 ] as const;
 

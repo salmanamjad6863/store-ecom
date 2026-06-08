@@ -115,7 +115,7 @@ export function ImageUploader({ images, onChange }: ImageUploaderProps) {
           ) : (
             <>
               <ImagePlus className="mr-2 h-4 w-4" />
-              Add images
+              Upload case photos
             </>
           )}
         </Button>

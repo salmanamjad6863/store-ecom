@@ -1,7 +1,7 @@
 import { notFound } from "next/navigation";
 
 import { ProductDetail } from "@/components/shop/product-detail";
-import { fetchProductBySlugOnServer } from "@/lib/queries/products-server";
+import { fetchProductWithVariantsBySlugOnServer } from "@/lib/queries/products-server";
 
 type ProductPageProps = {
   params: Promise<{ slug: string }>;
@@ -9,7 +9,7 @@ type ProductPageProps = {
 
 export default async function ProductPage({ params }: ProductPageProps) {
   const { slug } = await params;
-  const product = await fetchProductBySlugOnServer(slug);
+  const product = await fetchProductWithVariantsBySlugOnServer(slug);
 
   if (!product) {
     notFound();

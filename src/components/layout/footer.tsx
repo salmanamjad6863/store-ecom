@@ -3,6 +3,7 @@ import Link from "next/link";
 import { env } from "@/lib/env";
 
 import { BrandLogo } from "./brand-logo";
+import { FooterCartLink } from "./footer-cart-link";
 
 const shopLinks = [
   { href: "/shop", label: "Friday Drop" },
@@ -12,7 +13,7 @@ const shopLinks = [
 
 const helpLinks = [
   { href: "/track-order", label: "Track Order" },
-  { href: "/cart", label: "Cart" },
+  { type: "cart" as const, label: "Cart" },
   { href: "/checkout", label: "Checkout" },
 ] as const;
 
@@ -61,12 +62,16 @@ export function Footer() {
           <ul className="space-y-2.5">
             {helpLinks.map((link) => (
               <li key={link.label}>
-                <Link
-                  href={link.href}
-                  className="text-sm text-cream/55 transition-colors hover:text-blush"
-                >
-                  {link.label}
-                </Link>
+                {"type" in link && link.type === "cart" ? (
+                  <FooterCartLink />
+                ) : "href" in link ? (
+                  <Link
+                    href={link.href}
+                    className="text-sm text-cream/55 transition-colors hover:text-blush"
+                  >
+                    {link.label}
+                  </Link>
+                ) : null}
               </li>
             ))}
           </ul>

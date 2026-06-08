@@ -148,7 +148,7 @@ export function OrderReceipt({
 
         <ul className="space-y-4 border-t border-muted/20 pt-4">
           {order.items.map((item) => (
-            <li key={`${item.productId}-${item.slug}`} className="flex gap-4">
+            <li key={`${item.productId}-${item.variantId ?? item.slug}`} className="flex gap-4">
               {item.image ? (
                 <div className="relative h-16 w-16 shrink-0 overflow-hidden rounded-lg border border-muted/20">
                   <Image
@@ -165,6 +165,11 @@ export function OrderReceipt({
                   <Text variant="body" as="p" className="font-medium">
                     {item.name}
                   </Text>
+                  {item.modelName && item.colorName ? (
+                    <Text variant="small" as="p" className="text-muted">
+                      {item.modelName} · {item.colorName}
+                    </Text>
+                  ) : null}
                   <Text variant="small" as="p">
                     Qty {item.quantity}
                   </Text>

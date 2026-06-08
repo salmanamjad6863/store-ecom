@@ -3,16 +3,15 @@
 import { create } from "zustand";
 import { persist } from "zustand/middleware";
 
-import type { CartItem, CartState } from "@/types/cart";
+import { getColorById } from "@/lib/utils/product-colors";
+import {
+  productHasVariants,
+  resolveCartUnitPrice,
+  resolveDefaultVariant,
+} from "@/lib/utils/variant";
+import { getCartLineKey, type CartItem, type CartState } from "@/types/cart";
 import type { Product } from "@/types/product";
-
-function getUnitPrice(product: Product): number {
-  if (product.onSale && product.salePrice !== undefined) {
-    return product.salePrice;
-  }
-
-  return product.price;
-}
+import type { ProductVariant } from "@/types/product-variant";
 
 function clampQuantity(quantity: number, maxQuantity: number): number {
   if (maxQuantity <= 0) {
@@ -35,10 +34,13 @@ export const useCartStore = create<CartState>()(
         }
 
         const quantity = clampQuantity(item.quantity ?? 1, maxQuantity);
+        const lineKey = getCartLineKey(item.productId, item.colorId, item.variantId);
 
         set((state) => {
           const existing = state.items.find(
-            (cartItem) => cartItem.productId === item.productId,
+            (cartItem) =>
+              getCartLineKey(cartItem.productId, cartItem.colorId, cartItem.variantId) ===
+              lineKey,
           );
 
           if (existing) {
@@ -49,8 +51,14 @@ export const useCartStore = create<CartState>()(
 
             return {
               items: state.items.map((cartItem) =>
-                cartItem.productId === item.productId
-                  ? { ...cartItem, quantity: nextQuantity }
+                getCartLineKey(cartItem.productId, cartItem.colorId, cartItem.variantId) ===
+                lineKey
+                  ? {
+                      ...cartItem,
+                      quantity: nextQuantity,
+                      unitPrice: item.unitPrice,
+                      maxQuantity: item.maxQuantity,
+                    }
                   : cartItem,
               ),
             };
@@ -58,8 +66,12 @@ export const useCartStore = create<CartState>()(
 
           const newItem: CartItem = {
             productId: item.productId,
+            colorId: item.colorId,
+            variantId: item.variantId,
             slug: item.slug,
             name: item.name,
+            modelName: item.modelName,
+            colorName: item.colorName,
             image: item.image,
             unitPrice: item.unitPrice,
             quantity,
@@ -70,21 +82,24 @@ export const useCartStore = create<CartState>()(
         });
       },
 
-      removeItem: (productId) => {
+      removeItem: (lineKey) => {
         set((state) => ({
-          items: state.items.filter((item) => item.productId !== productId),
+          items: state.items.filter(
+            (item) =>
+              getCartLineKey(item.productId, item.colorId, item.variantId) !== lineKey,
+          ),
         }));
       },
 
-      updateQuantity: (productId, quantity) => {
+      updateQuantity: (lineKey, quantity) => {
         if (quantity < 1) {
-          get().removeItem(productId);
+          get().removeItem(lineKey);
           return;
         }
 
         set((state) => ({
           items: state.items.map((item) =>
-            item.productId === productId
+            getCartLineKey(item.productId, item.colorId, item.variantId) === lineKey
               ? { ...item, quantity: clampQuantity(quantity, item.maxQuantity) }
               : item,
           ),
@@ -103,20 +118,90 @@ export const useCartStore = create<CartState>()(
     }),
     {
       name: "store-ecom-cart",
+      version: 4,
+      migrate: (persisted, version) => {
+        const state = persisted as { items?: Array<Record<string, unknown>> };
+        if (!state?.items) {
+          return persisted as CartState;
+        }
+
+        return {
+          ...state,
+          items: state.items.map((item) => {
+            const productId = String(item.productId ?? "");
+            const variantId = String(item.variantId ?? "");
+            const legacyColorId = item.colorId ? String(item.colorId) : "";
+
+            return {
+              productId,
+              colorId: legacyColorId || (version < 3 ? "legacy" : ""),
+              variantId,
+              slug: String(item.slug ?? ""),
+              name: String(item.name ?? ""),
+              modelName: item.modelName ? String(item.modelName) : undefined,
+              colorName: item.colorName ? String(item.colorName) : undefined,
+              image: String(item.image ?? ""),
+              unitPrice: Number(item.unitPrice ?? 0),
+              quantity: Number(item.quantity ?? 1),
+              maxQuantity: Number(item.maxQuantity ?? 1),
+            };
+          }),
+        };
+      },
     },
   ),
 );
 
-export function addProductToCart(product: Product, quantity = 1): void {
+export function addVariantToCart(
+  product: Product,
+  variant: ProductVariant | undefined,
+  quantity = 1,
+  colorId?: string,
+): void {
+  if (productHasVariants(product) && !variant) {
+    return;
+  }
+
+  const resolvedColorId =
+    colorId ?? variant?.colorId ?? product.colors[0]?.colorId ?? "default";
+  const color = getColorById(product, resolvedColorId);
+  const unitPrice = resolveCartUnitPrice(product, variant);
+  const maxQuantity = variant?.quantity ?? product.quantity;
+  const image =
+    variant?.images[0] ??
+    color?.heroImage ??
+    color?.images[0] ??
+    product.heroImage ??
+    product.images[0] ??
+    "";
+
   useCartStore.getState().addItem({
     productId: product.id,
+    colorId: resolvedColorId,
+    variantId: variant?.id ?? "",
     slug: product.slug,
     name: product.name,
-    image: product.images[0] ?? "",
-    unitPrice: getUnitPrice(product),
-    maxQuantity: product.quantity,
+    modelName: variant?.modelName,
+    colorName: color?.colorName,
+    image,
+    unitPrice,
+    maxQuantity,
     quantity,
   });
+}
+
+export function addDefaultVariantToCart(
+  product: Product,
+  variants: ProductVariant[],
+  colorId: string,
+  quantity = 1,
+): void {
+  const defaultVariant = resolveDefaultVariant(product, variants, colorId);
+  if (!defaultVariant) {
+    return;
+  }
+
+  addVariantToCart(product, defaultVariant, quantity, colorId);
 }
 
 export const selectCartItemCount = (state: CartState) =>

@@ -14,6 +14,8 @@ type QuantitySelectorProps = {
   disabled?: boolean;
   label?: string;
   className?: string;
+  /** When false, hides the "of N available" hint (e.g. quick preview modal). */
+  showMaxHint?: boolean;
 };
 
 export function QuantitySelector({
@@ -24,6 +26,7 @@ export function QuantitySelector({
   disabled = false,
   label = "Quantity",
   className,
+  showMaxHint = true,
 }: QuantitySelectorProps) {
   const atMin = value <= min;
   const atMax = value >= max;
@@ -70,7 +73,7 @@ export function QuantitySelector({
         >
           <Plus className="h-4 w-4" />
         </Button>
-        {!disabled && max > 0 ? (
+        {!disabled && max > 0 && showMaxHint ? (
           <span className="text-sm text-muted">of {max} available</span>
         ) : null}
       </div>

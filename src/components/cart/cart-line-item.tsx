@@ -1,102 +1,126 @@
 "use client";
 
 import Image from "next/image";
-import Link from "next/link";
 import { Minus, Plus, Trash2 } from "lucide-react";
 
-import { Button } from "@/components/ui/button";
 import { Price } from "@/components/ui/price";
 import { Text } from "@/components/ui/text";
-import type { CartItem } from "@/types/cart";
+import { cn } from "@/lib/utils/cn";
+import { getCartLineKey, type CartItem } from "@/types/cart";
 
 type CartLineItemProps = {
   item: CartItem;
-  onUpdateQuantity: (productId: string, quantity: number) => void;
-  onRemove: (productId: string) => void;
+  onUpdateQuantity: (lineKey: string, quantity: number) => void;
+  onRemove: (lineKey: string) => void;
+  onOpenPreview: (item: CartItem) => void;
 };
 
-export function CartLineItem({ item, onUpdateQuantity, onRemove }: CartLineItemProps) {
+export function CartLineItem({
+  item,
+  onUpdateQuantity,
+  onRemove,
+  onOpenPreview,
+}: CartLineItemProps) {
+  const lineKey = getCartLineKey(item.productId, item.colorId, item.variantId);
   const lineTotal = item.unitPrice * item.quantity;
   const atMax = item.quantity >= item.maxQuantity;
 
   return (
-    <li className="flex gap-3 border-b border-muted/20 py-4 last:border-b-0 sm:gap-4 sm:py-6">
-      <Link
-        href={`/shop/${item.slug}`}
-        className="relative h-16 w-16 shrink-0 overflow-hidden rounded-md border border-muted/20 bg-background sm:h-24 sm:w-24 sm:rounded-lg"
+    <li className="flex gap-4 border-b border-deep/6 py-5 pl-5 pr-4 last:border-b-0 sm:gap-5 sm:pl-6 sm:pr-5">
+      <button
+        type="button"
+        onClick={() => onOpenPreview(item)}
+        className="relative mt-0.5 h-[112px] w-[76px] shrink-0 overflow-hidden rounded-xl border border-deep/8 bg-white p-2 transition hover:border-deep/15 hover:shadow-sm sm:h-[120px] sm:w-[84px]"
+        aria-label={`Edit ${item.name}`}
       >
         {item.image ? (
           <Image
             src={item.image}
             alt={item.name}
             fill
-            sizes="(max-width: 640px) 64px, 96px"
-            className="object-cover"
+            sizes="84px"
+            className="object-contain p-1"
           />
         ) : (
-          <div className="flex h-full items-center justify-center text-[10px] text-muted sm:text-xs">
+          <div className="flex h-full items-center justify-center text-[10px] text-muted">
             No image
           </div>
         )}
-      </Link>
+      </button>
 
-      <div className="flex min-w-0 flex-1 flex-col gap-2 sm:gap-3 sm:flex-row sm:items-start sm:justify-between">
-        <div className="min-w-0 flex-1 space-y-1 sm:space-y-2">
-          <Link href={`/shop/${item.slug}`} className="hover:text-accent">
-            <Text variant="h2" as="h3" className="line-clamp-2 text-sm leading-snug sm:text-lg">
-              {item.name}
-            </Text>
-          </Link>
-          <div className="flex flex-wrap items-center gap-x-3 gap-y-0.5 text-xs sm:gap-x-4 sm:text-sm">
-            <span className="text-muted">
-              Unit: <Price amount={item.unitPrice} />
-            </span>
-            <span className="text-muted">
-              Line: <Price amount={lineTotal} />
-            </span>
+      <div className="flex min-h-[112px] min-w-0 flex-1 flex-col sm:min-h-[120px]">
+        <div className="flex items-start justify-between gap-3">
+          <div className="min-w-0 flex-1">
+            <button
+              type="button"
+              onClick={() => onOpenPreview(item)}
+              className="text-left hover:text-accent"
+            >
+              <Text
+                variant="h2"
+                as="h3"
+                className="line-clamp-2 text-[15px] font-medium leading-snug text-deep sm:text-base"
+              >
+                {item.name}
+              </Text>
+            </button>
+            {item.modelName && item.colorName ? (
+              <Text variant="small" as="p" className="mt-1 text-muted">
+                {item.modelName} · {item.colorName}
+              </Text>
+            ) : null}
           </div>
+
+          <button
+            type="button"
+            onClick={() => onRemove(lineKey)}
+            className="flex h-8 w-8 shrink-0 items-center justify-center rounded-full text-muted transition hover:bg-deep/5 hover:text-danger"
+            aria-label="Remove item"
+          >
+            <Trash2 className="h-4 w-4" />
+          </button>
+        </div>
+
+        <div className="mt-2 flex items-baseline justify-between gap-3">
+          <Text variant="small" as="p" className="text-muted">
+            <Price amount={item.unitPrice} className="font-normal text-muted" />
+            <span className="ml-1">each</span>
+          </Text>
+          <Price amount={lineTotal} className="text-base font-semibold sm:text-lg" />
+        </div>
+
+        <div className="mt-auto space-y-2 pt-4">
           {atMax ? (
             <Text variant="small" as="p" className="text-danger">
               Maximum stock reached ({item.maxQuantity})
             </Text>
           ) : null}
-        </div>
 
-        <div className="flex flex-row items-center justify-between gap-2 sm:flex-col sm:items-end sm:gap-3">
-          <div className="flex items-center gap-1.5 sm:gap-2">
-            <Button
+          <div className="inline-flex items-center rounded-lg border border-deep/12 bg-white">
+            <button
               type="button"
-              variant="secondary"
-              size="sm"
               aria-label="Decrease quantity"
-              onClick={() => onUpdateQuantity(item.productId, item.quantity - 1)}
+              onClick={() => onUpdateQuantity(lineKey, item.quantity - 1)}
+              className="flex h-9 w-9 items-center justify-center text-deep transition hover:bg-soft disabled:opacity-40"
             >
-              <Minus className="h-4 w-4" />
-            </Button>
-            <span className="min-w-8 text-center text-sm font-medium">{item.quantity}</span>
-            <Button
+              <Minus className="h-3.5 w-3.5" />
+            </button>
+            <span className="min-w-9 border-x border-deep/10 px-1 text-center text-sm font-medium tabular-nums">
+              {item.quantity}
+            </span>
+            <button
               type="button"
-              variant="secondary"
-              size="sm"
               aria-label="Increase quantity"
               disabled={atMax}
-              onClick={() => onUpdateQuantity(item.productId, item.quantity + 1)}
+              onClick={() => onUpdateQuantity(lineKey, item.quantity + 1)}
+              className={cn(
+                "flex h-9 w-9 items-center justify-center text-deep transition hover:bg-soft",
+                atMax && "cursor-not-allowed opacity-40",
+              )}
             >
-              <Plus className="h-4 w-4" />
-            </Button>
+              <Plus className="h-3.5 w-3.5" />
+            </button>
           </div>
-
-          <Button
-            type="button"
-            variant="ghost"
-            size="sm"
-            className="h-8 px-2 text-muted hover:text-danger sm:h-9"
-            onClick={() => onRemove(item.productId)}
-            aria-label="Remove item"
-          >
-            <Trash2 className="h-4 w-4 sm:mr-1.5" />
-            <span className="hidden sm:inline">Remove</span>
-          </Button>
         </div>
       </div>
     </li>

@@ -19,6 +19,7 @@ import { queryKeys } from "@/lib/queries/keys";
 import { isValidPkPhone, normalizePkPhone } from "@/lib/validation/phone";
 import { useToast } from "@/providers/toast-provider";
 import type { CartItem } from "@/types/cart";
+import { getCartLineKey } from "@/types/cart";
 
 const checkoutSchema = z.object({
   name: z.string().min(2, "Name is required"),
@@ -243,9 +244,16 @@ export function CheckoutForm({ items, subtotal, onCompletingChange }: CheckoutFo
         </Text>
         <ul className="space-y-3 border-b border-muted/20 pb-4">
           {items.map((item) => (
-            <li key={item.productId} className="flex justify-between gap-4 text-sm">
+            <li
+              key={getCartLineKey(item.productId, item.colorId, item.variantId)}
+              className="flex justify-between gap-4 text-sm"
+            >
               <span className="text-muted">
-                {item.name} × {item.quantity}
+                {item.name}
+                {item.modelName && item.colorName
+                  ? ` (${item.modelName} · ${item.colorName})`
+                  : ""}{" "}
+                × {item.quantity}
               </span>
               <Price amount={item.unitPrice * item.quantity} />
             </li>

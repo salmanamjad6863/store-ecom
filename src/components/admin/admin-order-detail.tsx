@@ -15,6 +15,7 @@ import { useAdminOrder, useOrderStatusMutation } from "@/hooks/use-admin-orders"
 import type { OrderStatus } from "@/types/order";
 
 import { OrderStatusSelect } from "./order-status-select";
+import { OrderDeliveryLabelButton } from "./order-delivery-label-button";
 
 type AdminOrderDetailProps = {
   orderId: string;
@@ -84,6 +85,9 @@ export function AdminOrderDetail({ orderId }: AdminOrderDetailProps) {
         <Text variant="muted" as="p" className="mt-1">
           Placed {order.createdAt.toLocaleString()} · Cash on delivery
         </Text>
+        <div className="mt-4">
+          <OrderDeliveryLabelButton order={order} />
+        </div>
       </div>
 
       <div className="grid gap-6 lg:grid-cols-2">
@@ -154,7 +158,7 @@ export function AdminOrderDetail({ orderId }: AdminOrderDetailProps) {
         <ul className="divide-y divide-muted/20">
           {order.items.map((item) => (
             <li
-              key={`${item.productId}-${item.slug}`}
+              key={`${item.productId}-${item.variantId ?? item.slug}`}
               className="flex gap-4 py-4 first:pt-0 last:pb-0"
             >
               {item.image ? (
@@ -173,8 +177,13 @@ export function AdminOrderDetail({ orderId }: AdminOrderDetailProps) {
                   <Text variant="body" as="p" className="font-medium">
                     {item.name}
                   </Text>
+                  {item.modelName && item.colorName ? (
+                    <Text variant="small" as="p" className="text-muted">
+                      {item.modelName} · {item.colorName}
+                    </Text>
+                  ) : null}
                   <Text variant="small" as="p">
-                    Qty {item.quantity} · {item.slug}
+                    Qty {item.quantity}
                   </Text>
                 </div>
                 <Price amount={item.unitPrice * item.quantity} />

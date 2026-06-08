@@ -8,15 +8,17 @@ import { fetchProducts, fetchProductTypes } from "@/lib/queries/products";
 
 type UseProductsOptions = {
   type?: string;
+  modelId?: string;
+  theme?: string;
   includeHidden?: boolean;
 };
 
 export function useProducts(options: UseProductsOptions = {}) {
-  const { type, includeHidden } = options;
+  const { type, modelId, theme, includeHidden } = options;
 
   return useQuery({
-    queryKey: queryKeys.products.list(type),
-    queryFn: () => fetchProducts({ type, includeHidden }),
+    queryKey: queryKeys.products.list({ type, modelId, theme }),
+    queryFn: () => fetchProducts({ type, modelId, theme, includeHidden }),
     ...productQueryDefaults,
     placeholderData: (previousData) => previousData,
   });

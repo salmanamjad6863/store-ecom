@@ -5,7 +5,8 @@ import { useSearchParams } from "next/navigation";
 
 import { SectionHeading } from "@/components/ui/section-heading";
 import { EmptyState } from "@/components/ui/empty-state";
-import { useProducts, useProductTypes } from "@/hooks/use-products";
+import { useProducts } from "@/hooks/use-products";
+import { useShopPhoneModelIds, useShopThemes } from "@/hooks/use-product-with-variants";
 import { filterAndSortProducts } from "@/lib/shop/filter-products";
 import { cn } from "@/lib/utils/cn";
 
@@ -16,12 +17,14 @@ import type { ShopSort } from "./shop-toolbar";
 
 function ShopContentInner() {
   const searchParams = useSearchParams();
-  const type = searchParams.get("type") ?? undefined;
+  const modelId = searchParams.get("model") ?? undefined;
+  const theme = searchParams.get("theme") ?? undefined;
   const [search, setSearch] = useState("");
   const [sort, setSort] = useState<ShopSort>("newest");
 
-  const { data: products, isPending, isError, error, isFetching } = useProducts({ type });
-  const { data: types = [] } = useProductTypes();
+  const { data: products, isPending, isError, isFetching } = useProducts({ modelId, theme });
+  const { data: shopModelIds = [] } = useShopPhoneModelIds();
+  const { data: shopThemes = [] } = useShopThemes();
 
   const displayedProducts = useMemo(
     () => filterAndSortProducts(products ?? [], search, sort),
@@ -41,12 +44,13 @@ function ShopContentInner() {
                 Designed to be <em className="italic text-accent">irresistible</em>
               </>
             }
-            lead="Each drop is a universe. Collect them all."
+            lead="Browse by iPhone model or design. Each color is its own product."
           />
         </header>
 
         <ShopControls
-          types={types}
+          modelIds={shopModelIds}
+          themes={shopThemes}
           search={search}
           onSearchChange={setSearch}
           sort={sort}
@@ -96,8 +100,8 @@ function ShopContentInner() {
             <EmptyState
               title="The drop is coming soon"
               description={
-                type
-                  ? `No pieces in “${type}” yet. Explore the full collection instead.`
+                modelId
+                  ? "No cases for this iPhone model yet. Browse all models instead."
                   : "New cases arrive every Friday — check back soon."
               }
               className="border-deep/15 bg-cream/50"

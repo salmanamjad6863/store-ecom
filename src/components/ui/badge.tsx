@@ -5,6 +5,7 @@ const variantStyles = {
   sale: "border border-accent bg-accent text-white",
   soldOut: "border border-danger/40 bg-danger/10 font-semibold text-danger",
   new: "bg-accent text-white border border-accent",
+  hot: "bg-deep text-white border border-deep",
   lowStock: "bg-gold/90 text-deep border border-gold",
 } as const;
 

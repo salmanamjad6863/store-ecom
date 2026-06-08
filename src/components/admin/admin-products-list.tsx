@@ -30,7 +30,12 @@ export function AdminProductsList() {
             Manage catalog, stock, sales, and visibility.
           </Text>
         </div>
-        <Button href="/admin/products/new">Add product</Button>
+        <div className="flex flex-wrap gap-2">
+          <Button href="/admin/phone-models" variant="secondary">
+            iPhone models
+          </Button>
+          <Button href="/admin/products/new">Add product</Button>
+        </div>
       </div>
 
       {isLoading ? (
@@ -55,6 +60,8 @@ export function AdminProductsList() {
                   <span className="sr-only">Image</span>
                 </th>
                 <th className="px-4 py-3 font-medium text-muted">Name</th>
+                <th className="px-4 py-3 font-medium text-muted">Design</th>
+                <th className="px-4 py-3 font-medium text-muted">Colors</th>
                 <th className="px-4 py-3 font-medium text-muted">Type</th>
                 <th className="px-4 py-3 font-medium text-muted">Qty</th>
                 <th className="px-4 py-3 font-medium text-muted">Price</th>
@@ -64,7 +71,7 @@ export function AdminProductsList() {
             </thead>
             <tbody>
               {products.map((product) => {
-                const image = product.images[0];
+                const image = product.heroImage ?? product.colors[0]?.heroImage ?? product.colors[0]?.images[0];
 
                 return (
                 <tr key={product.id} className="border-b border-muted/10 last:border-0">
@@ -86,6 +93,20 @@ export function AdminProductsList() {
                     </div>
                   </td>
                   <td className="px-4 py-3 font-medium text-foreground">{product.name}</td>
+                  <td className="px-4 py-3 text-muted">{product.theme}</td>
+                  <td className="px-4 py-3 text-muted">
+                    <div className="flex flex-wrap items-center gap-1.5">
+                      {product.colors.map((color) => (
+                        <span
+                          key={color.id}
+                          title={color.colorName}
+                          className="h-3.5 w-3.5 rounded-full border border-muted/30"
+                          style={{ backgroundColor: color.colorHex ?? "#d4d4d4" }}
+                        />
+                      ))}
+                      {product.colors.length === 0 ? "—" : null}
+                    </div>
+                  </td>
                   <td className="px-4 py-3 text-muted">{product.type}</td>
                   <td className="px-4 py-3 text-muted">{product.quantity}</td>
                   <td className="px-4 py-3 text-muted">

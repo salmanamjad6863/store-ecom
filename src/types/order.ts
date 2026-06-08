@@ -4,9 +4,13 @@ export type OrderStatus = (typeof ORDER_STATUSES)[number];
 
 export type OrderItem = {
   productId: string;
+  colorId?: string;
+  variantId?: string;
   name: string;
   slug: string;
   image: string;
+  modelName?: string;
+  colorName?: string;
   unitPrice: number;
   quantity: number;
 };

@@ -1,4 +1,6 @@
 import type { Product } from "@/types/product";
+import type { ProductTag } from "@/types/product-tag";
+import { getProductTagLabel } from "@/types/product-tag";
 
 export function computeSalePriceFromPercent(priceMinor: number, percentOff: number): number {
   const clamped = Math.min(99, Math.max(1, Math.round(percentOff)));
@@ -41,35 +43,47 @@ export function getProductDisplayPrice(product: Product): {
 }
 
 export function isProductSoldOut(product: Product): boolean {
+  if (product.hasVariants) {
+    return (product.totalQuantity ?? 0) <= 0;
+  }
+
   return product.quantity <= 0;
 }
 
 export function isProductLowStock(product: Product, threshold = 3): boolean {
-  return product.quantity > 0 && product.quantity <= threshold;
+  const quantity = product.hasVariants ? (product.totalQuantity ?? 0) : product.quantity;
+  return quantity > 0 && quantity <= threshold;
 }
 
-export function isProductNew(product: Product, days = 14): boolean {
-  const ms = days * 24 * 60 * 60 * 1000;
-  return Date.now() - product.createdAt.getTime() < ms;
+export function getProductManualTagBadge(product: Product): ProductCardBadge | null {
+  if (!product.tag) {
+    return null;
+  }
+
+  return {
+    variant: product.tag,
+    label: getProductTagLabel(product.tag),
+  };
 }
 
 export type ProductCardBadge = {
-  variant: "new" | "sale" | "soldOut" | "lowStock";
+  variant: ProductTag | "sale" | "soldOut" | "lowStock";
   label: string;
 };
 
-/** One badge per card (top-right), highest priority first. */
+/** One badge per card, shown below the image. Highest priority first. */
 export function getPrimaryProductCardBadge(product: Product): ProductCardBadge | null {
   if (isProductSoldOut(product)) {
     return { variant: "soldOut", label: "Sold out" };
   }
 
-  if (isProductLowStock(product)) {
-    return { variant: "lowStock", label: `${product.quantity} left` };
+  const manualTag = getProductManualTagBadge(product);
+  if (manualTag) {
+    return manualTag;
   }
 
-  if (isProductNew(product)) {
-    return { variant: "new", label: "New" };
+  if (isProductLowStock(product)) {
+    return { variant: "lowStock", label: `${product.hasVariants ? product.totalQuantity : product.quantity} left` };
   }
 
   if (product.onSale) {
@@ -82,7 +96,7 @@ export function getPrimaryProductCardBadge(product: Product): ProductCardBadge |
   return null;
 }
 
-/** Storefront product tile badges (top-right on cards). */
+/** Storefront product tile badges (below image on cards). */
 export function getProductCardBadges(product: Product): ProductCardBadge[] {
   const badges: ProductCardBadge[] = [];
 
@@ -91,8 +105,9 @@ export function getProductCardBadges(product: Product): ProductCardBadge[] {
     return badges;
   }
 
-  if (isProductNew(product)) {
-    badges.push({ variant: "new", label: "New" });
+  const manualTag = getProductManualTagBadge(product);
+  if (manualTag) {
+    badges.push(manualTag);
   }
 
   if (product.onSale) {
@@ -106,7 +121,7 @@ export function getProductCardBadges(product: Product): ProductCardBadge[] {
   if (isProductLowStock(product)) {
     badges.push({
       variant: "lowStock",
-      label: `${product.quantity} left`,
+      label: `${product.hasVariants ? product.totalQuantity : product.quantity} left`,
     });
   }
 

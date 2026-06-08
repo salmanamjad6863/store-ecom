@@ -1,6 +1,3 @@
-/** Products created within this window show a "New" badge on cards. */
-export const NEW_PRODUCT_DAYS = 14;
-
 /** Show "N left" when quantity is between 1 and this value (inclusive). */
 export const LOW_STOCK_THRESHOLD = 3;
 

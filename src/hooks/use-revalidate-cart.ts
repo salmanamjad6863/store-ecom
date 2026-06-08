@@ -7,16 +7,17 @@ import {
   syncCartItems,
   type CartSyncResult,
 } from "@/lib/cart/sync-cart";
-import { fetchProductsByIds } from "@/lib/queries/products";
+import { fetchProductsWithVariantsByIds } from "@/lib/queries/products";
 import { useCartStore } from "@/stores/cart-store";
 
 export function useRevalidateCart() {
-  const items = useCartStore((state) => state.items);
   const replaceItems = useCartStore((state) => state.replaceItems);
   const [isRevalidating, setIsRevalidating] = useState(false);
   const [lastResult, setLastResult] = useState<CartSyncResult | null>(null);
 
   const revalidate = useCallback(async (): Promise<CartSyncResult> => {
+    const items = useCartStore.getState().items;
+
     if (items.length === 0) {
       const empty: CartSyncResult = { issues: [], hasBlockingIssues: false };
       setLastResult(empty);
@@ -27,7 +28,7 @@ export function useRevalidateCart() {
 
     try {
       const productIds = items.map((item) => item.productId);
-      const products = await fetchProductsByIds(productIds);
+      const products = await fetchProductsWithVariantsByIds(productIds);
       const productsById = buildProductMap(products);
       const { nextItems, result } = syncCartItems(items, productsById);
 
@@ -38,7 +39,7 @@ export function useRevalidateCart() {
     } finally {
       setIsRevalidating(false);
     }
-  }, [items, replaceItems]);
+  }, [replaceItems]);
 
   return { revalidate, isRevalidating, lastResult };
 }
