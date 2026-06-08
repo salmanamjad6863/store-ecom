@@ -10,7 +10,7 @@ export default function Home() {
       <HomeHero />
       <AnnouncementTicker />
       <CollectionSection limit={4} />
-      <ImpulseSection />
+      {/* <ImpulseSection /> */}
       <ReviewsSection />
     </>
   );

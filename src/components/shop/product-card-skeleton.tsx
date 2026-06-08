@@ -14,13 +14,13 @@ export function ProductCardSkeleton({ product }: ProductCardSkeletonProps) {
   return (
     <ProductCardShell
       className="pointer-events-none"
-      image={<Skeleton className="absolute inset-0 rounded-3xl" />}
+      image={<Skeleton className="absolute inset-0" />}
       badge={
         showBadge ? (
-          <Skeleton className="h-6 w-14 sm:w-16" />
+          <Skeleton className="h-5 w-[4.5rem] rounded-full" />
         ) : undefined
       }
-      type={<Skeleton className="mx-auto inline-block h-3 w-24" />}
+      meta={<Skeleton className="mx-auto inline-block h-3 w-28" />}
       title={<Skeleton className="mx-auto block h-10 w-[85%] max-w-[180px] rounded-sm" />}
       price={
         showSalePrice ? (

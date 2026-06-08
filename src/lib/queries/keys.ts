@@ -32,4 +32,9 @@ export const queryKeys = {
     adminList: ["orders", "admin", "list"] as const,
     adminDetail: (id: string) => ["orders", "admin", "detail", id] as const,
   },
+  storeSettings: {
+    all: ["storeSettings"] as const,
+    homepage: ["storeSettings", "homepage"] as const,
+    featuredHero: ["storeSettings", "featuredHero"] as const,
+  },
 } as const;

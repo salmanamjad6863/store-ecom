@@ -71,7 +71,7 @@ export type ProductCardBadge = {
   label: string;
 };
 
-/** One badge per card (top-right), highest priority first. */
+/** One badge per card, shown below the image. Highest priority first. */
 export function getPrimaryProductCardBadge(product: Product): ProductCardBadge | null {
   if (isProductSoldOut(product)) {
     return { variant: "soldOut", label: "Sold out" };
@@ -96,7 +96,7 @@ export function getPrimaryProductCardBadge(product: Product): ProductCardBadge |
   return null;
 }
 
-/** Storefront product tile badges (top-right on cards). */
+/** Storefront product tile badges (below image on cards). */
 export function getProductCardBadges(product: Product): ProductCardBadge[] {
   const badges: ProductCardBadge[] = [];
 

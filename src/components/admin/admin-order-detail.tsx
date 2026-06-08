@@ -15,6 +15,7 @@ import { useAdminOrder, useOrderStatusMutation } from "@/hooks/use-admin-orders"
 import type { OrderStatus } from "@/types/order";
 
 import { OrderStatusSelect } from "./order-status-select";
+import { OrderDeliveryLabelButton } from "./order-delivery-label-button";
 
 type AdminOrderDetailProps = {
   orderId: string;
@@ -84,6 +85,9 @@ export function AdminOrderDetail({ orderId }: AdminOrderDetailProps) {
         <Text variant="muted" as="p" className="mt-1">
           Placed {order.createdAt.toLocaleString()} · Cash on delivery
         </Text>
+        <div className="mt-4">
+          <OrderDeliveryLabelButton order={order} />
+        </div>
       </div>
 
       <div className="grid gap-6 lg:grid-cols-2">

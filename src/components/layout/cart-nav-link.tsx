@@ -1,9 +1,9 @@
 "use client";
 
 import { ShoppingBag } from "lucide-react";
-import Link from "next/link";
 
 import { cn } from "@/lib/utils/cn";
+import { useCartDrawer } from "@/providers/cart-drawer-provider";
 import { useCartStore, selectCartItemCount } from "@/stores/cart-store";
 
 type CartNavLinkProps = {
@@ -12,10 +12,12 @@ type CartNavLinkProps = {
 
 export function CartNavLink({ className }: CartNavLinkProps = {}) {
   const cartCount = useCartStore(selectCartItemCount);
+  const { openCart } = useCartDrawer();
 
   return (
-    <Link
-      href="/cart"
+    <button
+      type="button"
+      onClick={openCart}
       aria-label={cartCount > 0 ? `Cart, ${cartCount} items` : "Cart"}
       className={cn(
         "relative inline-flex h-9 w-9 items-center justify-center text-deep transition-colors hover:text-accent sm:h-10 sm:w-10",
@@ -28,6 +30,6 @@ export function CartNavLink({ className }: CartNavLinkProps = {}) {
           {cartCount > 99 ? "99+" : cartCount}
         </span>
       ) : null}
-    </Link>
+    </button>
   );
 }

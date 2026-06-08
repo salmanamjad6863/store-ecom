@@ -84,6 +84,91 @@ body {
   animation: fade-up 0.8s ease both;
 }
 
+@keyframes hero-card-in {
+  from {
+    opacity: 0;
+    transform: translateY(36px) scale(0.94);
+  }
+  to {
+    opacity: 1;
+    transform: translateY(0) scale(1);
+  }
+}
+
+.animate-hero-card-in {
+  animation: hero-card-in 0.9s cubic-bezier(0.22, 1, 0.36, 1) both;
+}
+
+/* Premium featured hero card hover — smooth lift, shadow, image zoom */
+.hero-featured-card {
+  transition:
+    transform 0.7s cubic-bezier(0.22, 1, 0.36, 1),
+    box-shadow 0.7s cubic-bezier(0.22, 1, 0.36, 1);
+  will-change: transform;
+  backface-visibility: hidden;
+}
+
+@media (hover: hover) and (pointer: fine) {
+  .hero-featured-card:hover {
+    transform: translate3d(0, -6px, 0);
+    box-shadow: 0 28px 72px rgba(43, 26, 20, 0.15), 0 8px 24px rgba(43, 26, 20, 0.06);
+  }
+}
+
+.hero-featured-card__media {
+  transition: background-color 0.7s cubic-bezier(0.22, 1, 0.36, 1);
+}
+
+@media (hover: hover) and (pointer: fine) {
+  .hero-featured-card:hover .hero-featured-card__media {
+    background-color: color-mix(in srgb, var(--color-soft) 88%, white);
+  }
+}
+
+.hero-featured-card__image {
+  transition: transform 0.85s cubic-bezier(0.22, 1, 0.36, 1);
+  transform: translate3d(0, 0, 0) scale(1);
+  will-change: transform;
+  backface-visibility: hidden;
+}
+
+@media (hover: hover) and (pointer: fine) {
+  .hero-featured-card:hover .hero-featured-card__image {
+    transform: translate3d(0, 0, 0) scale(1.045);
+  }
+}
+
+.hero-featured-card__label,
+.hero-featured-card__price {
+  transition: color 0.55s cubic-bezier(0.22, 1, 0.36, 1);
+}
+
+@media (hover: hover) and (pointer: fine) {
+  .hero-featured-card:hover .hero-featured-card__label {
+    color: var(--color-deep);
+  }
+
+  .hero-featured-card:hover .hero-featured-card__price {
+    color: color-mix(in srgb, var(--color-deep) 92%, transparent);
+  }
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .hero-featured-card,
+  .hero-featured-card__media,
+  .hero-featured-card__image,
+  .hero-featured-card__label,
+  .hero-featured-card__price {
+    transition: none;
+  }
+
+  @media (hover: hover) and (pointer: fine) {
+    .hero-featured-card:hover .hero-featured-card__image {
+      transform: none;
+    }
+  }
+}
+
 .animate-ticker {
   animation: ticker 20s linear infinite;
 }

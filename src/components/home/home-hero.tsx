@@ -1,17 +1,13 @@
 "use client";
 
-import Image from "next/image";
-import Link from "next/link";
-
 import { Button } from "@/components/ui/button";
-import { useProducts } from "@/hooks/use-products";
-import { env } from "@/lib/env";
-import { formatCurrency } from "@/lib/utils/format";
-import { getProductDisplayPrice } from "@/lib/utils/product";
+import { useFeaturedHeroProducts } from "@/hooks/use-store-settings";
+
+import { HeroFeaturedCard, HeroProductCardSkeleton } from "./hero-featured-card";
 
 export function HomeHero() {
-  const { data: products } = useProducts();
-  const featured = (products ?? []).slice(0, 3);
+  const { data: featured, isPending } = useFeaturedHeroProducts();
+  const items = featured ?? [];
 
   return (
     <section className="grid min-h-[min(100vh,900px)] lg:grid-cols-2">
@@ -60,52 +56,24 @@ export function HomeHero() {
         />
 
         <div className="relative z-10 grid w-full max-w-md grid-cols-3 gap-3 sm:max-w-lg sm:gap-4">
-          {featured.length > 0
-            ? featured.map((product, index) => {
-                const { amount } = getProductDisplayPrice(product);
-                const image = product.images[0];
+          {isPending && items.length === 0
+            ? [0, 1, 2].map((i) => <HeroProductCardSkeleton key={i} raised={i === 1} />)
+            : null}
 
-                return (
-                  <Link
-                    key={product.id}
-                    href={`/shop/${product.slug}`}
-                    className={`group block rounded-2xl bg-white p-3 shadow-[0_20px_60px_rgba(43,26,20,0.12)] transition-transform hover:-translate-y-2 sm:p-3.5 ${
-                      index === 1 ? "-translate-y-4 sm:-translate-y-5" : ""
-                    }`}
-                  >
-                    <div className="relative mb-2 aspect-[9/16] overflow-hidden rounded-xl bg-soft">
-                      {image ? (
-                        <Image
-                          src={image}
-                          alt={product.name}
-                          fill
-                          sizes="120px"
-                          className="object-cover transition-transform group-hover:scale-105"
-                        />
-                      ) : (
-                        <div className="flex h-full items-center justify-center text-xs text-muted">
-                          —
-                        </div>
-                      )}
-                    </div>
-                    <p className="truncate text-center text-[10px] font-medium uppercase tracking-wider text-warm sm:text-[11px]">
-                      {product.name}
-                    </p>
-                    <p className="text-center text-xs text-deep/80">
-                      {formatCurrency(amount, env.currency.code, env.currency.locale)}
-                    </p>
-                  </Link>
-                );
-              })
-            : [0, 1, 2].map((i) => (
-                <div
-                  key={i}
-                  className={`rounded-2xl bg-white/80 p-3 shadow-lg ${i === 1 ? "-translate-y-4" : ""}`}
-                >
-                  <div className="mb-2 aspect-[9/16] rounded-xl bg-blush/40" />
-                  <div className="mx-auto h-2 w-12 rounded bg-warm/20" />
-                </div>
-              ))}
+          {!isPending && items.length > 0
+            ? items.map((product, index) => (
+                <HeroFeaturedCard
+                  key={`${product.id}-${index}`}
+                  product={product}
+                  index={index}
+                  raised={index === 1}
+                />
+              ))
+            : null}
+
+          {!isPending && items.length === 0
+            ? [0, 1, 2].map((i) => <HeroProductCardSkeleton key={i} raised={i === 1} />)
+            : null}
         </div>
       </div>
     </section>

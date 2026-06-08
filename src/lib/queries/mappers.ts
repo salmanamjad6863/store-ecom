@@ -115,7 +115,10 @@ export function mapVariantDoc(
     modelName: data.modelName,
     images: data.images ?? [],
     quantity: data.quantity ?? 0,
-    price: data.price,
+    price:
+      typeof data.price === "number" && Number.isFinite(data.price) && data.price > 0
+        ? data.price
+        : undefined,
     sku: data.sku,
   };
 }

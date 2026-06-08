@@ -12,6 +12,8 @@ import { env } from "@/lib/env";
 import { formatCurrency } from "@/lib/utils/format";
 import type { Order, OrderStatus } from "@/types/order";
 
+import { OrderDeliveryLabelButton } from "./order-delivery-label-button";
+
 const STATUS_VARIANT: Record<OrderStatus, "default" | "sale" | "soldOut"> = {
   pending: "default",
   transferred: "sale",
@@ -127,12 +129,15 @@ export function OrdersTable({ orders, isLoading, isError }: OrdersTableProps) {
                 })}
               </td>
               <td className="px-4 py-3">
-                <Link
-                  href={`/admin/orders/${order.id}`}
-                  className="font-medium text-accent hover:underline"
-                >
-                  View
-                </Link>
+                <div className="flex flex-col gap-1.5">
+                  <Link
+                    href={`/admin/orders/${order.id}`}
+                    className="font-medium text-accent hover:underline"
+                  >
+                    View
+                  </Link>
+                  <OrderDeliveryLabelButton order={order} variant="link" />
+                </div>
               </td>
             </tr>
           );

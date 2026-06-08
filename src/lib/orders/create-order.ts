@@ -6,7 +6,6 @@ import {
   type Firestore,
 } from "firebase/firestore";
 
-import { isDummyProductId } from "@/lib/data/dummy-products";
 import { COLLECTIONS, SUBCOLLECTIONS } from "@/lib/firebase/collections";
 import { generateOrderNumber } from "@/lib/utils/order-number";
 import type { CartItem } from "@/types/cart";
@@ -67,7 +66,6 @@ export async function createOrderInFirestore(
     quantity: item.quantity,
   }));
 
-  const firestoreItems = input.items.filter((item) => !isDummyProductId(item.productId));
   const orderRef = doc(collection(db, COLLECTIONS.orders));
 
   await runTransaction(db, async (transaction) => {
@@ -84,7 +82,7 @@ export async function createOrderInFirestore(
           productRef: ReturnType<typeof doc>;
         };
 
-    const targets: StockTarget[] = firestoreItems.map((item) => {
+    const targets: StockTarget[] = input.items.map((item) => {
       if (item.variantId) {
         return {
           kind: "variant" as const,

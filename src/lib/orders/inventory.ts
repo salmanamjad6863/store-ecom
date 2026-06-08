@@ -5,7 +5,6 @@ import {
   type Firestore,
 } from "firebase/firestore";
 
-import { isDummyProductId } from "@/lib/data/dummy-products";
 import { COLLECTIONS, SUBCOLLECTIONS } from "@/lib/firebase/collections";
 import type { Order, OrderStatus } from "@/types/order";
 
@@ -18,9 +17,7 @@ export function shouldRestoreStockOnCancel(
 
 /** Return reserved quantities to product stock when an order is cancelled. */
 export async function restoreOrderStock(db: Firestore, order: Order): Promise<void> {
-  const restorableItems = order.items.filter((item) => !isDummyProductId(item.productId));
-
-  if (restorableItems.length === 0) {
+  if (order.items.length === 0) {
     return;
   }
 
@@ -28,17 +25,17 @@ export async function restoreOrderStock(db: Firestore, order: Order): Promise<vo
     type RestoreTarget =
       | {
           kind: "variant";
-          item: (typeof restorableItems)[number];
+          item: (typeof order.items)[number];
           variantRef: ReturnType<typeof doc>;
           productRef: ReturnType<typeof doc>;
         }
       | {
           kind: "product";
-          item: (typeof restorableItems)[number];
+          item: (typeof order.items)[number];
           productRef: ReturnType<typeof doc>;
         };
 
-    const targets: RestoreTarget[] = restorableItems.map((item) => {
+    const targets: RestoreTarget[] = order.items.map((item) => {
       if (item.variantId) {
         return {
           kind: "variant" as const,

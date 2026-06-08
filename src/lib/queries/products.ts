@@ -12,14 +12,6 @@ import {
   type QueryConstraint,
 } from "firebase/firestore";
 
-import {
-  dummyProducts,
-  getDummyProductBySlug,
-  getDummyProductWithVariantsBySlug,
-  getDummyVariantsForProduct,
-  isDummyProductId,
-  mergeWithDummyProducts,
-} from "@/lib/data/dummy-products";
 import { COLLECTIONS } from "@/lib/firebase/collections";
 import { getClientFirestore } from "@/lib/firebase/client";
 import {
@@ -64,8 +56,6 @@ export async function fetchProducts(options: FetchProductsOptions = {}): Promise
     .map((productDoc) => mapProductDoc(productDoc))
     .filter((product): product is Product => product !== null);
 
-  products = mergeWithDummyProducts(products);
-
   if (type) {
     products = products.filter((product) => product.type === type);
   }
@@ -88,12 +78,6 @@ export async function fetchProducts(options: FetchProductsOptions = {}): Promise
 }
 
 export async function fetchProductBySlug(slug: string): Promise<Product | null> {
-  const dummy = getDummyProductBySlug(slug);
-
-  if (dummy) {
-    return dummy;
-  }
-
   const db = getClientFirestore();
   const snapshot = await getDocs(
     query(
@@ -111,11 +95,6 @@ export async function fetchProductBySlug(slug: string): Promise<Product | null> 
 export async function fetchProductWithVariantsBySlug(
   slug: string,
 ): Promise<ProductWithVariants | null> {
-  const dummy = getDummyProductWithVariantsBySlug(slug);
-  if (dummy) {
-    return dummy;
-  }
-
   const product = await fetchProductBySlug(slug);
   if (!product) {
     return null;
@@ -142,22 +121,15 @@ export async function fetchProductThemes(): Promise<string[]> {
     }
   }
 
-  for (const dummy of dummyProducts) {
-    if (dummy.theme?.trim()) {
-      themes.add(dummy.theme.trim());
-    }
-  }
-
   return Array.from(themes).sort((a, b) => a.localeCompare(b));
 }
 
 /** Count how many case designs are available per iPhone model. */
 export async function countCasesPerModel(): Promise<Record<string, number>> {
   const products = await fetchAdminProducts();
-  const allProducts = mergeWithDummyProducts(products);
   const counts: Record<string, number> = {};
 
-  for (const product of allProducts) {
+  for (const product of products) {
     if (product.hidden) {
       continue;
     }
@@ -219,7 +191,7 @@ export async function fetchShopPhoneModelIds(): Promise<string[]> {
     .map((model) => model.id);
 }
 
-/** Admin: all Firestore products (no dummy merge). */
+/** Admin: all Firestore products. */
 export async function fetchAdminProducts(): Promise<Product[]> {
   const db = getClientFirestore();
   const snapshot = await getDocs(collection(db, COLLECTIONS.products));
@@ -231,10 +203,6 @@ export async function fetchAdminProducts(): Promise<Product[]> {
 }
 
 export async function fetchProductById(id: string): Promise<Product | null> {
-  if (isDummyProductId(id)) {
-    return dummyProducts.find((product) => product.id === id) ?? null;
-  }
-
   const db = getClientFirestore();
   const snapshot = await getDoc(doc(db, COLLECTIONS.products, id));
 
@@ -244,14 +212,6 @@ export async function fetchProductById(id: string): Promise<Product | null> {
 export async function fetchProductWithVariantsById(
   id: string,
 ): Promise<ProductWithVariants | null> {
-  if (isDummyProductId(id)) {
-    const product = dummyProducts.find((entry) => entry.id === id);
-    if (!product) {
-      return null;
-    }
-    return { ...product, variants: getDummyVariantsForProduct(id) };
-  }
-
   const product = await fetchProductById(id);
   if (!product) {
     return null;
@@ -447,10 +407,6 @@ export class DeleteProductError extends Error {
 }
 
 export async function deleteProduct(id: string): Promise<void> {
-  if (isDummyProductId(id)) {
-    throw new DeleteProductError("The sample product cannot be deleted.");
-  }
-
   const db = getClientFirestore();
   const snapshot = await getDoc(doc(db, COLLECTIONS.products, id));
 

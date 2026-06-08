@@ -11,16 +11,30 @@ export function getVariantDisplayPrice(
   product: Product,
   variant?: ProductVariant | null,
 ): { amount: number; compareAt?: number } {
-  if (variant?.price !== undefined) {
+  const variantPrice = variant?.price;
+  const hasOwnVariantPrice =
+    typeof variantPrice === "number" &&
+    Number.isFinite(variantPrice) &&
+    variantPrice > 0;
+
+  if (hasOwnVariantPrice) {
     if (product.onSale && product.salePrice !== undefined) {
       const ratio = product.salePrice / product.price;
-      const saleAmount = Math.round(variant.price * ratio);
-      return { amount: saleAmount, compareAt: variant.price };
+      const saleAmount = Math.round(variantPrice * ratio);
+      return { amount: saleAmount, compareAt: variantPrice };
     }
-    return { amount: variant.price };
+    return { amount: variantPrice };
   }
 
   return getProductDisplayPrice(product);
+}
+
+/** Unit price stored on cart lines (minor units, same as product.price). */
+export function resolveCartUnitPrice(
+  product: Product,
+  variant?: ProductVariant | null,
+): number {
+  return getVariantDisplayPrice(product, variant).amount;
 }
 
 export function isVariantSoldOut(variant: ProductVariant): boolean {

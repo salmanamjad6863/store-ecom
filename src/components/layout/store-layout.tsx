@@ -1,3 +1,10 @@
+"use client";
+
+import { CartDrawer } from "@/components/cart/cart-drawer";
+import { CartPriceSync } from "@/components/cart/cart-price-sync";
+import { CartDrawerProvider } from "@/providers/cart-drawer-provider";
+import { ProductPreviewProvider } from "@/providers/product-preview-provider";
+
 import { Footer } from "./footer";
 import { Header } from "./header";
 
@@ -7,10 +14,16 @@ type StoreLayoutProps = {
 
 export function StoreLayout({ children }: StoreLayoutProps) {
   return (
-    <div className="flex min-h-dvh w-full flex-1 flex-col">
-      <Header />
-      <main className="flex-1">{children}</main>
-      <Footer />
-    </div>
+    <CartDrawerProvider>
+      <ProductPreviewProvider>
+        <div className="flex min-h-dvh w-full flex-1 flex-col">
+          <Header />
+          <main className="flex-1">{children}</main>
+          <Footer />
+        </div>
+        <CartDrawer />
+        <CartPriceSync />
+      </ProductPreviewProvider>
+    </CartDrawerProvider>
   );
 }

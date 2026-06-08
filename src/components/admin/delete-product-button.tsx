@@ -4,7 +4,6 @@ import { useState } from "react";
 
 import { ConfirmDialog } from "@/components/ui/confirm-dialog";
 import { useProductMutations } from "@/hooks/use-admin-products";
-import { isDummyProductId } from "@/lib/data/dummy-products";
 import type { Product } from "@/types/product";
 
 type DeleteProductButtonProps = {
@@ -16,8 +15,6 @@ export function DeleteProductButton({ product }: DeleteProductButtonProps) {
   const [open, setOpen] = useState(false);
   const [error, setError] = useState<string | null>(null);
 
-  const isDummy = isDummyProductId(product.id);
-
   const handleConfirm = async () => {
     setError(null);
 
@@ -28,14 +25,6 @@ export function DeleteProductButton({ product }: DeleteProductButtonProps) {
       setError(err instanceof Error ? err.message : "Could not delete this product.");
     }
   };
-
-  if (isDummy) {
-    return (
-      <span className="text-xs text-muted" title="Sample product cannot be deleted">
-        —
-      </span>
-    );
-  }
 
   return (
     <>

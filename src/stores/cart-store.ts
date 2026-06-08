@@ -4,27 +4,14 @@ import { create } from "zustand";
 import { persist } from "zustand/middleware";
 
 import { getColorById } from "@/lib/utils/product-colors";
-import { getProductDisplayPrice } from "@/lib/utils/product";
 import {
-  getVariantDisplayPrice,
   productHasVariants,
+  resolveCartUnitPrice,
   resolveDefaultVariant,
 } from "@/lib/utils/variant";
 import { getCartLineKey, type CartItem, type CartState } from "@/types/cart";
 import type { Product } from "@/types/product";
 import type { ProductVariant } from "@/types/product-variant";
-
-function getUnitPrice(product: Product, variant?: ProductVariant): number {
-  if (variant) {
-    return getVariantDisplayPrice(product, variant).amount;
-  }
-
-  if (product.onSale && product.salePrice !== undefined) {
-    return product.salePrice;
-  }
-
-  return product.price;
-}
 
 function clampQuantity(quantity: number, maxQuantity: number): number {
   if (maxQuantity <= 0) {
@@ -66,7 +53,12 @@ export const useCartStore = create<CartState>()(
               items: state.items.map((cartItem) =>
                 getCartLineKey(cartItem.productId, cartItem.colorId, cartItem.variantId) ===
                 lineKey
-                  ? { ...cartItem, quantity: nextQuantity }
+                  ? {
+                      ...cartItem,
+                      quantity: nextQuantity,
+                      unitPrice: item.unitPrice,
+                      maxQuantity: item.maxQuantity,
+                    }
                   : cartItem,
               ),
             };
@@ -126,7 +118,7 @@ export const useCartStore = create<CartState>()(
     }),
     {
       name: "store-ecom-cart",
-      version: 3,
+      version: 4,
       migrate: (persisted, version) => {
         const state = persisted as { items?: Array<Record<string, unknown>> };
         if (!state?.items) {
@@ -173,7 +165,7 @@ export function addVariantToCart(
   const resolvedColorId =
     colorId ?? variant?.colorId ?? product.colors[0]?.colorId ?? "default";
   const color = getColorById(product, resolvedColorId);
-  const unitPrice = getUnitPrice(product, variant);
+  const unitPrice = resolveCartUnitPrice(product, variant);
   const maxQuantity = variant?.quantity ?? product.quantity;
   const image =
     variant?.images[0] ??

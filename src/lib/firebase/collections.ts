@@ -3,6 +3,7 @@ export const COLLECTIONS = {
   phoneModels: "phoneModels",
   orders: "orders",
   users: "users",
+  storeSettings: "storeSettings",
 } as const;
 
 export const SUBCOLLECTIONS = {
