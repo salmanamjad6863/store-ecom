@@ -51,8 +51,8 @@ export function ProductCardShell({
       aria-label={ariaLabel}
     >
       <div className="relative p-2 sm:p-2.5">
-        <div className="relative aspect-[3/4] overflow-hidden rounded-xl bg-soft sm:rounded-2xl">
-          <div className="absolute inset-0">{image}</div>
+        <div className="relative aspect-[3/4] overflow-hidden rounded-xl bg-soft p-2.5 sm:rounded-2xl sm:p-3">
+          <div className="relative h-full w-full">{image}</div>
         </div>
       </div>
 

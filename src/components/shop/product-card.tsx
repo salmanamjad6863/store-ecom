@@ -127,7 +127,7 @@ export function ProductCard({ product }: ProductCardProps) {
                 fill
                 sizes="(max-width: 640px) 50vw, (max-width: 1024px) 33vw, 25vw"
                 className={cn(
-                  "object-cover transition-transform duration-500 group-hover:scale-[1.03]",
+                  "object-contain transition-transform duration-500 group-hover:scale-[1.03]",
                   isProductSoldOut(product) && "opacity-80 saturate-[0.85]",
                 )}
               />
