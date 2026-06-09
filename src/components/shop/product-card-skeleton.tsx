@@ -14,7 +14,7 @@ export function ProductCardSkeleton({ product }: ProductCardSkeletonProps) {
   return (
     <ProductCardShell
       className="pointer-events-none"
-      image={<Skeleton className="absolute inset-0" />}
+      image={<Skeleton className="h-full w-full rounded-lg" />}
       badge={
         showBadge ? (
           <Skeleton className="h-5 w-[4.5rem] rounded-full" />
