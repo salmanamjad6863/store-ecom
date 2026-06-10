@@ -5,9 +5,14 @@ import { useFeaturedHeroProducts } from "@/hooks/use-store-settings";
 
 import { HeroFeaturedCard, HeroProductCardSkeleton } from "./hero-featured-card";
 
-export function HomeHero() {
+type HomeHeroProps = {
+  skeletonCount?: number;
+};
+
+export function HomeHero({ skeletonCount: skeletonCountHint = 3 }: HomeHeroProps) {
   const { data: featured, isPending } = useFeaturedHeroProducts();
   const items = featured ?? [];
+  const skeletonCount = items.length > 0 ? items.length : skeletonCountHint;
 
   return (
     <section className="grid min-h-[min(100vh,900px)] lg:grid-cols-2">
@@ -57,7 +62,9 @@ export function HomeHero() {
 
         <div className="relative z-10 grid w-full max-w-md grid-cols-3 gap-3 sm:max-w-lg sm:gap-4">
           {isPending && items.length === 0
-            ? [0, 1, 2].map((i) => <HeroProductCardSkeleton key={i} raised={i === 1} />)
+            ? Array.from({ length: skeletonCount }, (_, i) => (
+                <HeroProductCardSkeleton key={i} raised={i === 1} />
+              ))
             : null}
 
           {!isPending && items.length > 0
@@ -72,7 +79,9 @@ export function HomeHero() {
             : null}
 
           {!isPending && items.length === 0
-            ? [0, 1, 2].map((i) => <HeroProductCardSkeleton key={i} raised={i === 1} />)
+            ? Array.from({ length: skeletonCount }, (_, i) => (
+                <HeroProductCardSkeleton key={i} raised={i === 1} />
+              ))
             : null}
         </div>
       </div>

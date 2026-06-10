@@ -1,14 +1,14 @@
 import { cn } from "@/lib/utils/cn";
 import {
+  PRODUCT_CARD_META_CLASSES,
   PRODUCT_CARD_PRICE_CLASSES,
   PRODUCT_CARD_TITLE_CLASSES,
-  PRODUCT_CARD_TYPE_CLASSES,
 } from "@/lib/skeleton/product-layout";
 
 type ProductCardShellProps = {
   image: React.ReactNode;
   badge?: React.ReactNode;
-  meta: React.ReactNode;
+  meta?: React.ReactNode;
   title: React.ReactNode;
   price: React.ReactNode;
   extra?: React.ReactNode;
@@ -58,8 +58,10 @@ export function ProductCardShell({
 
       <div className="flex flex-1 flex-col items-center px-3 pb-4 pt-1 text-center sm:px-4 sm:pb-5">
         {badge ? <div className="mb-2 flex justify-center">{badge}</div> : null}
-        <div className={cn(PRODUCT_CARD_TYPE_CLASSES, "w-full")}>{meta}</div>
-        <div className={cn(PRODUCT_CARD_TITLE_CLASSES, "mt-1 w-full")}>{title}</div>
+        <div className={cn(PRODUCT_CARD_TITLE_CLASSES, "w-full")}>{title}</div>
+        {meta ? (
+          <div className={cn(PRODUCT_CARD_META_CLASSES, "mt-1 w-full")}>{meta}</div>
+        ) : null}
         <div className={cn(PRODUCT_CARD_PRICE_CLASSES, "mt-2 flex justify-center")}>{price}</div>
         {extra ? <div className="mt-3 w-full">{extra}</div> : null}
       </div>

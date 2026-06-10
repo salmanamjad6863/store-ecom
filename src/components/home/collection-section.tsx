@@ -4,6 +4,7 @@ import { Button } from "@/components/ui/button";
 import { SectionHeading } from "@/components/ui/section-heading";
 import { EmptyState } from "@/components/ui/empty-state";
 import { Spinner } from "@/components/ui/spinner";
+import { useProductSkeletonCount } from "@/hooks/use-product-skeleton-count";
 import { useProducts } from "@/hooks/use-products";
 import { cn } from "@/lib/utils/cn";
 
@@ -14,15 +15,22 @@ type CollectionSectionProps = {
   limit?: number;
   showViewAll?: boolean;
   className?: string;
+  skeletonCount?: number;
 };
 
 export function CollectionSection({
   limit = 4,
   showViewAll = true,
   className,
+  skeletonCount: skeletonCountHint,
 }: CollectionSectionProps) {
   const { data: products, isPending, isError, isFetching } = useProducts();
   const items = products?.slice(0, limit) ?? [];
+  const skeletonCount = useProductSkeletonCount({
+    products,
+    limit,
+    fallbackCount: skeletonCountHint,
+  });
   const showSkeleton = isPending && !products;
 
   return (
@@ -45,7 +53,9 @@ export function CollectionSection({
           ) : null}
         </div>
 
-        {showSkeleton ? <ProductGridSkeleton count={limit} /> : null}
+        {showSkeleton && skeletonCount > 0 ? (
+          <ProductGridSkeleton count={skeletonCount} />
+        ) : null}
 
         {isError ? (
           <EmptyState

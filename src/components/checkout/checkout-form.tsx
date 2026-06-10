@@ -2,7 +2,7 @@
 
 import { zodResolver } from "@hookform/resolvers/zod";
 import { useQueryClient } from "@tanstack/react-query";
-import { useEffect, useState } from "react";
+import { useState } from "react";
 import { useForm } from "react-hook-form";
 import { useRouter } from "next/navigation";
 import { z } from "zod";
@@ -15,6 +15,7 @@ import { Price } from "@/components/ui/price";
 import { Text } from "@/components/ui/text";
 import { Textarea } from "@/components/ui/textarea";
 import { useAuth } from "@/hooks/use-auth";
+import { isAdminEmail } from "@/lib/auth/admin";
 import { queryKeys } from "@/lib/queries/keys";
 import { isValidPkPhone, normalizePkPhone } from "@/lib/validation/phone";
 import { useToast } from "@/providers/toast-provider";
@@ -54,7 +55,6 @@ export function CheckoutForm({ items, subtotal, onCompletingChange }: CheckoutFo
   const {
     register,
     handleSubmit,
-    setValue,
     formState: { errors, isSubmitting },
   } = useForm<CheckoutFormValues>({
     resolver: zodResolver(checkoutSchema),
@@ -69,11 +69,8 @@ export function CheckoutForm({ items, subtotal, onCompletingChange }: CheckoutFo
     },
   });
 
-  useEffect(() => {
-    if (user?.email) {
-      setValue("email", user.email);
-    }
-  }, [user?.email, setValue]);
+  const checkoutUserId =
+    user?.uid && !isAdminEmail(user.email) ? user.uid : undefined;
 
   const onSubmit = async (values: CheckoutFormValues) => {
     setSubmitError(null);
@@ -95,7 +92,7 @@ export function CheckoutForm({ items, subtotal, onCompletingChange }: CheckoutFo
         body: JSON.stringify({
           items,
           customer,
-          userId: user?.uid,
+          userId: checkoutUserId,
         }),
       });
 
@@ -112,8 +109,8 @@ export function CheckoutForm({ items, subtotal, onCompletingChange }: CheckoutFo
 
       await Promise.all([
         queryClient.invalidateQueries({ queryKey: queryKeys.products.all }),
-        user?.uid
-          ? queryClient.invalidateQueries({ queryKey: queryKeys.orders.byUser(user.uid) })
+        checkoutUserId
+          ? queryClient.invalidateQueries({ queryKey: queryKeys.orders.byUser(checkoutUserId) })
           : Promise.resolve(),
       ]);
 
@@ -140,12 +137,6 @@ export function CheckoutForm({ items, subtotal, onCompletingChange }: CheckoutFo
         <Text variant="h2" as="h2" className="text-xl">
           Delivery details
         </Text>
-        {user ? (
-          <Text variant="small" as="p" className="text-muted">
-            Signed in as {user.email} — this order will appear in your account history.
-          </Text>
-        ) : null}
-
         <div className="grid gap-4 sm:grid-cols-2">
           <div className="space-y-2 sm:col-span-2">
             <Label htmlFor="name">Full name</Label>
