@@ -12,7 +12,7 @@ import { lockBodyScroll, unlockBodyScroll } from "@/lib/utils/scroll-lock";
 
 import { CartDrawerBody } from "./cart-drawer-body";
 
-const PANEL_ANIMATION_MS = 400;
+const PANEL_ANIMATION_MS = 550;
 const OPEN_DELAY_MS = 60;
 
 export function CartDrawer() {
@@ -78,7 +78,7 @@ export function CartDrawer() {
         type="button"
         className={cn(
           "absolute inset-0 bg-deep/50 backdrop-blur-[2px]",
-          "transition-opacity ease-out max-md:duration-[340ms] md:duration-300",
+          "transition-opacity ease-out max-md:duration-[480ms] md:duration-[480ms]",
           visible ? "opacity-100" : "opacity-0",
         )}
         aria-label="Close cart"
@@ -93,7 +93,7 @@ export function CartDrawer() {
           "absolute flex flex-col overflow-hidden bg-cream shadow-2xl will-change-transform",
           "inset-x-0 bottom-0 max-h-[min(92vh,780px)] rounded-t-[1.75rem]",
           "md:inset-y-0 md:left-auto md:right-0 md:max-h-none md:w-full md:max-w-[420px] md:rounded-none md:rounded-l-[1.75rem]",
-          "transition-transform max-md:duration-[400ms] max-md:ease-[cubic-bezier(0.32,0.72,0,1)] md:duration-300 md:ease-out",
+          "transition-transform max-md:duration-[550ms] max-md:ease-[cubic-bezier(0.16,1,0.3,1)] md:duration-[550ms] md:ease-[cubic-bezier(0.16,1,0.3,1)]",
           visible
             ? "translate-y-0 md:translate-x-0"
             : "translate-y-full md:translate-y-0 md:translate-x-full",

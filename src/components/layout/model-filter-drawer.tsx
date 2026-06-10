@@ -17,7 +17,7 @@ import { useModelFilterDrawer } from "@/providers/model-filter-drawer-provider";
 import { cn } from "@/lib/utils/cn";
 import { lockBodyScroll, unlockBodyScroll } from "@/lib/utils/scroll-lock";
 
-const PANEL_ANIMATION_MS = 400;
+const PANEL_ANIMATION_MS = 550;
 const OPEN_DELAY_MS = 60;
 
 function buildShopHref(modelId?: string, theme?: string | null): string {
@@ -116,7 +116,7 @@ export function ModelFilterDrawer() {
         type="button"
         className={cn(
           "absolute inset-0 bg-deep/45 backdrop-blur-[2px]",
-          "transition-opacity duration-[340ms] ease-out",
+          "transition-opacity duration-[480ms] ease-out",
           visible ? "opacity-100" : "opacity-0",
         )}
         aria-label="Close model filters"
@@ -129,7 +129,7 @@ export function ModelFilterDrawer() {
         aria-label="Filter by iPhone model"
         className={cn(
           "absolute inset-y-0 left-0 flex w-full max-w-[min(100vw,340px)] flex-col overflow-hidden bg-cream shadow-2xl will-change-transform",
-          "transition-transform duration-[400ms] ease-[cubic-bezier(0.32,0.72,0,1)]",
+          "transition-transform duration-[550ms] ease-[cubic-bezier(0.16,1,0.3,1)]",
           visible ? "translate-x-0" : "-translate-x-full",
         )}
       >

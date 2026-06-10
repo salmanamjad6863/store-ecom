@@ -14,7 +14,7 @@ import { Spinner } from "@/components/ui/spinner";
 import { Text } from "@/components/ui/text";
 import { usePhoneModels } from "@/hooks/use-phone-models";
 import { queryKeys } from "@/lib/queries/keys";
-import { fetchProductWithVariantsBySlug } from "@/lib/queries/products";
+import { fetchProductWithVariantsById } from "@/lib/queries/products";
 import { cn } from "@/lib/utils/cn";
 import { lockBodyScroll, unlockBodyScroll } from "@/lib/utils/scroll-lock";
 import {
@@ -46,7 +46,7 @@ type ProductQuickPreviewProps = {
   onExited?: () => void;
 };
 
-const PANEL_ANIMATION_MS = 480;
+const PANEL_ANIMATION_MS = 550;
 const OPEN_DELAY_MS = 100;
 
 /** Rolling water surface — tiles seamlessly; body fills below the crest line. */
@@ -185,8 +185,8 @@ export function ProductQuickPreview({
   const [quantity, setQuantity] = useState(1);
 
   const { data: fullProduct, isPending } = useQuery({
-    queryKey: queryKeys.products.detailWithVariants(product.slug),
-    queryFn: () => fetchProductWithVariantsBySlug(product.slug),
+    queryKey: queryKeys.products.detailWithVariantsById(product.id),
+    queryFn: () => fetchProductWithVariantsById(product.id),
     enabled: open,
   });
 
@@ -381,7 +381,7 @@ export function ProductQuickPreview({
         type="button"
         className={cn(
           "absolute inset-0 bg-deep/50 backdrop-blur-[2px]",
-          "transition-opacity ease-out max-md:duration-[420ms] md:duration-300",
+          "transition-opacity ease-out max-md:duration-[480ms] md:duration-[480ms]",
           visible ? "opacity-100" : "opacity-0",
         )}
         aria-label="Close preview"
@@ -395,10 +395,10 @@ export function ProductQuickPreview({
         className={cn(
           "absolute inset-x-0 bottom-0 z-10 flex w-full flex-col overflow-hidden bg-cream shadow-2xl will-change-transform",
           "max-h-[min(92dvh,880px)] rounded-t-[1.75rem]",
-          "transition-transform max-md:duration-[480ms] max-md:ease-[cubic-bezier(0.22,1,0.36,1)]",
+          "transition-transform max-md:duration-[550ms] max-md:ease-[cubic-bezier(0.16,1,0.3,1)]",
           "md:relative md:inset-auto md:bottom-auto md:max-h-[min(90vh,920px)] md:rounded-[1.75rem]",
           "md:w-full md:max-w-xl lg:max-w-2xl",
-          "md:transition-[transform,opacity] md:duration-[400ms] md:ease-[cubic-bezier(0.32,0.72,0,1)]",
+          "md:transition-[transform,opacity] md:duration-[550ms] md:ease-[cubic-bezier(0.16,1,0.3,1)]",
           visible
             ? "translate-y-0 md:scale-100 md:opacity-100"
             : "translate-y-full md:translate-y-0 md:scale-[0.97] md:opacity-0",
