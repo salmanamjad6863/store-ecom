@@ -2,12 +2,12 @@ import type { QueryClient } from "@tanstack/react-query";
 
 import { queryKeys } from "@/lib/queries/keys";
 import { productQueryDefaults } from "@/lib/queries/product-query-options";
-import { fetchProductBySlug } from "@/lib/queries/products";
+import { fetchProductWithVariantsBySlug } from "@/lib/queries/products";
 
 export function prefetchProductBySlug(queryClient: QueryClient, slug: string) {
   return queryClient.prefetchQuery({
-    queryKey: queryKeys.products.detail(slug),
-    queryFn: () => fetchProductBySlug(slug),
+    queryKey: queryKeys.products.detailWithVariants(slug),
+    queryFn: () => fetchProductWithVariantsBySlug(slug),
     ...productQueryDefaults,
   });
 }

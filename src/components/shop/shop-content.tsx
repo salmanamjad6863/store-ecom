@@ -79,7 +79,7 @@ function ShopContentInner({ skeletonCount: skeletonCountHint }: ShopContentInner
             <div
               className={cn(
                 "transition-opacity duration-200",
-                isFetching && "opacity-60",
+                isFetching && products && "opacity-60",
               )}
             >
               <ProductGrid products={displayedProducts} />

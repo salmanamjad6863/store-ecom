@@ -2,19 +2,21 @@ import { AnnouncementTicker } from "@/components/home/announcement-ticker";
 import { CollectionSection } from "@/components/home/collection-section";
 import { HomeHero } from "@/components/home/home-hero";
 import { ReviewsSection } from "@/components/home/reviews-section";
-import { fetchFeaturedHeroProductsOnServer } from "@/lib/queries/store-settings-server";
-import { fetchProductsOnServer } from "@/lib/queries/products-server";
+import { CatalogHydration } from "@/components/providers/catalog-hydration";
+import { fetchHomeCatalogData } from "@/lib/queries/home-catalog-server";
+import { buildCatalogDehydratedState } from "@/lib/queries/hydrate-catalog";
 
 export default async function Home() {
-  const [products, featuredProducts] = await Promise.all([
-    fetchProductsOnServer(),
-    fetchFeaturedHeroProductsOnServer(),
-  ]);
-
+  const { products, featuredProducts, phoneModels } = await fetchHomeCatalogData();
   const collectionLimit = 4;
+  const dehydratedState = buildCatalogDehydratedState({
+    products,
+    featuredProducts,
+    phoneModels,
+  });
 
   return (
-    <>
+    <CatalogHydration state={dehydratedState}>
       <HomeHero skeletonCount={featuredProducts.length} />
       <AnnouncementTicker />
       <CollectionSection
@@ -22,6 +24,6 @@ export default async function Home() {
         skeletonCount={Math.min(collectionLimit, products.length)}
       />
       <ReviewsSection />
-    </>
+    </CatalogHydration>
   );
 }

@@ -4,6 +4,7 @@ import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
 
 import { queryKeys } from "@/lib/queries/keys";
 import { productQueryDefaults } from "@/lib/queries/product-query-options";
+import { reviveProducts } from "@/lib/queries/product-serialization";
 import {
   fetchFeaturedHeroProducts,
   fetchHomepageSettings,
@@ -14,6 +15,7 @@ export function useFeaturedHeroProducts() {
   return useQuery({
     queryKey: queryKeys.storeSettings.featuredHero,
     queryFn: fetchFeaturedHeroProducts,
+    select: reviveProducts,
     ...productQueryDefaults,
   });
 }

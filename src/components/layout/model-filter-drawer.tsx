@@ -6,8 +6,9 @@ import { usePathname, useSearchParams } from "next/navigation";
 import { useEffect, useMemo, useState } from "react";
 
 import { Text } from "@/components/ui/text";
+import { useProducts } from "@/hooks/use-products";
 import { usePhoneModels } from "@/hooks/use-phone-models";
-import { useShopPhoneModelIds } from "@/hooks/use-product-with-variants";
+import { deriveShopModelIdSet } from "@/lib/shop/catalog-derived";
 import {
   getPhoneModelVariantLabel,
   groupPhoneModelsByGeneration,
@@ -41,12 +42,15 @@ export function ModelFilterDrawer() {
   const activeTheme = searchParams.get("theme");
   const { isOpen, closeDrawer } = useModelFilterDrawer();
   const { data: phoneModels = [] } = usePhoneModels();
-  const { data: shopModelIds = [] } = useShopPhoneModelIds();
+  const { data: catalogProducts = [] } = useProducts();
   const [present, setPresent] = useState(false);
   const [visible, setVisible] = useState(false);
   const [openGenerations, setOpenGenerations] = useState<Set<string>>(new Set());
 
-  const shopModelIdSet = useMemo(() => new Set(shopModelIds), [shopModelIds]);
+  const shopModelIdSet = useMemo(
+    () => deriveShopModelIdSet(catalogProducts),
+    [catalogProducts],
+  );
 
   const groups = useMemo(
     () => groupPhoneModelsByGeneration(phoneModels),

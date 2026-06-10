@@ -46,8 +46,8 @@ type ProductQuickPreviewProps = {
   onExited?: () => void;
 };
 
-const PANEL_ANIMATION_MS = 400;
-const OPEN_DELAY_MS = 60;
+const PANEL_ANIMATION_MS = 480;
+const OPEN_DELAY_MS = 100;
 
 /** Rolling water surface — tiles seamlessly; body fills below the crest line. */
 const WAVE_PATH_BACK =
@@ -373,12 +373,15 @@ export function ProductQuickPreview({
   const canAddToCart = !optionSoldOut && (!hasVariants || Boolean(selectedVariant));
 
   const modal = (
-    <div className="fixed inset-0 z-[100]" role="presentation">
+    <div
+      className="fixed inset-0 z-[100] md:flex md:items-center md:justify-center md:p-8 lg:p-10"
+      role="presentation"
+    >
       <button
         type="button"
         className={cn(
           "absolute inset-0 bg-deep/50 backdrop-blur-[2px]",
-          "transition-opacity ease-out max-md:duration-[340ms] md:duration-300",
+          "transition-opacity ease-out max-md:duration-[420ms] md:duration-300",
           visible ? "opacity-100" : "opacity-0",
         )}
         aria-label="Close preview"
@@ -390,12 +393,15 @@ export function ProductQuickPreview({
         aria-modal="true"
         aria-label={`Preview ${catalogProduct.theme}`}
         className={cn(
-          "absolute inset-x-0 bottom-0 mx-auto flex w-full max-w-lg flex-col overflow-hidden bg-cream shadow-2xl sm:max-w-md",
-          "max-h-[min(92dvh,880px)] rounded-t-[1.75rem] md:max-h-[min(96vh,880px)]",
-          "md:left-1/2 md:w-full md:max-w-md md:-translate-x-1/2",
-          "will-change-transform",
-          "transition-transform max-md:duration-[400ms] max-md:ease-[cubic-bezier(0.32,0.72,0,1)] md:duration-[400ms] md:ease-[cubic-bezier(0.32,0.72,0,1)]",
-          visible ? "translate-y-0" : "translate-y-full",
+          "absolute inset-x-0 bottom-0 z-10 flex w-full flex-col overflow-hidden bg-cream shadow-2xl will-change-transform",
+          "max-h-[min(92dvh,880px)] rounded-t-[1.75rem]",
+          "transition-transform max-md:duration-[480ms] max-md:ease-[cubic-bezier(0.22,1,0.36,1)]",
+          "md:relative md:inset-auto md:bottom-auto md:max-h-[min(90vh,920px)] md:rounded-[1.75rem]",
+          "md:w-full md:max-w-xl lg:max-w-2xl",
+          "md:transition-[transform,opacity] md:duration-[400ms] md:ease-[cubic-bezier(0.32,0.72,0,1)]",
+          visible
+            ? "translate-y-0 md:scale-100 md:opacity-100"
+            : "translate-y-full md:translate-y-0 md:scale-[0.97] md:opacity-0",
         )}
       >
         <div
@@ -414,7 +420,7 @@ export function ProductQuickPreview({
         <div className="min-h-0 flex-1 overflow-y-auto overscroll-contain">
           <div className="relative bg-gradient-to-b from-[#f3ebe4] via-soft to-cream px-6 pb-2 pt-12 sm:px-8 sm:pt-14">
             <div className="pointer-events-none absolute inset-0 bg-[radial-gradient(ellipse_at_50%_0%,rgba(201,123,107,0.1)_0%,transparent_60%)]" />
-            <div className="relative mx-auto aspect-[3/4] w-full max-w-[260px] sm:max-w-[300px]">
+            <div className="relative mx-auto aspect-[3/4] w-full max-w-[260px] sm:max-w-[300px] md:max-w-[340px]">
               <div
                 className="absolute -inset-3 rounded-[1.5rem] bg-accent/15 blur-2xl"
                 aria-hidden

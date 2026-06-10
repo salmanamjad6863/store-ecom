@@ -70,7 +70,12 @@ export function CollectionSection({
         ) : null}
 
         {!showSkeleton && !isError && items.length > 0 ? (
-          <div className={cn("transition-opacity duration-200", isFetching && "opacity-60")}>
+          <div
+            className={cn(
+              "transition-opacity duration-200",
+              isFetching && products && "opacity-60",
+            )}
+          >
             <ProductGrid products={items} />
           </div>
         ) : null}
