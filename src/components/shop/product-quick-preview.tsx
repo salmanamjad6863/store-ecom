@@ -43,9 +43,83 @@ type ProductQuickPreviewProps = {
   initialColorId?: string;
   initialVariantId?: string;
   onClose: () => void;
+  onExited?: () => void;
 };
 
-const ANIMATION_MS = 320;
+const PANEL_ANIMATION_MS = 400;
+const OPEN_DELAY_MS = 60;
+
+/** Rolling water surface — tiles seamlessly; body fills below the crest line. */
+const WAVE_PATH_BACK =
+  "M0 88 C45 82 90 94 135 88 S225 82 270 88 S360 94 405 88 S495 82 540 88 S630 94 675 88 S765 82 810 88 S900 94 945 88 S1035 82 1080 88 S1170 94 1215 88 S1305 82 1350 88 S1395 94 1440 88 V200 H0 Z";
+
+const WAVE_PATH_MID =
+  "M0 82 C45 88 90 76 135 82 S225 88 270 82 S360 76 405 82 S495 88 540 82 S630 76 675 82 S765 88 810 82 S900 76 945 82 S1035 88 1080 82 S1170 76 1215 82 S1305 88 1350 82 S1395 76 1440 82 V200 H0 Z";
+
+const WAVE_PATH_FRONT =
+  "M0 78 C45 72 90 84 135 78 S225 72 270 78 S360 84 405 78 S495 72 540 78 S630 84 675 78 S765 72 810 78 S900 84 945 78 S1035 72 1080 78 S1170 84 1215 78 S1305 72 1350 78 S1395 84 1440 78 V200 H0 Z";
+
+function PreviewWaterLayer({
+  path,
+  fill,
+  bodyClass,
+  swellClass,
+  driftClass,
+}: {
+  path: string;
+  fill: string;
+  bodyClass: string;
+  swellClass: string;
+  driftClass: string;
+}) {
+  const tile = (
+    <svg viewBox="0 0 1440 200" preserveAspectRatio="none" aria-hidden>
+      <path d={path} fill={fill} />
+    </svg>
+  );
+
+  return (
+    <div className={cn("preview-wave-media__body", bodyClass)}>
+      <div className={cn("preview-wave-media__swell", swellClass)}>
+        <div className={cn("preview-wave-media__drift", driftClass)}>
+          {tile}
+          {tile}
+        </div>
+      </div>
+    </div>
+  );
+}
+
+function PreviewWaveBackdrop() {
+  return (
+    <div className="preview-wave-media absolute inset-0 overflow-hidden" aria-hidden>
+      <div className="preview-wave-media__pool absolute inset-0" />
+      <div className="preview-wave-media__glow absolute inset-0" />
+      <PreviewWaterLayer
+        path={WAVE_PATH_BACK}
+        fill="rgba(232, 196, 184, 0.5)"
+        bodyClass="preview-wave-media__body--back"
+        swellClass="preview-wave-media__swell--back"
+        driftClass="preview-wave-media__drift--back"
+      />
+      <PreviewWaterLayer
+        path={WAVE_PATH_MID}
+        fill="rgba(232, 196, 184, 0.38)"
+        bodyClass="preview-wave-media__body--mid"
+        swellClass="preview-wave-media__swell--mid"
+        driftClass="preview-wave-media__drift--mid"
+      />
+      <PreviewWaterLayer
+        path={WAVE_PATH_FRONT}
+        fill="rgba(201, 123, 107, 0.26)"
+        bodyClass="preview-wave-media__body--front"
+        swellClass="preview-wave-media__swell--front"
+        driftClass="preview-wave-media__drift--front"
+      />
+      <div className="preview-wave-media__shimmer absolute inset-0" />
+    </div>
+  );
+}
 
 function ModelDropdown({
   models,
@@ -101,6 +175,7 @@ export function ProductQuickPreview({
   initialColorId,
   initialVariantId,
   onClose,
+  onExited,
 }: ProductQuickPreviewProps) {
   const { toast } = useToast();
   const [present, setPresent] = useState(false);
@@ -181,19 +256,23 @@ export function ProductQuickPreview({
   useEffect(() => {
     if (open) {
       setPresent(true);
-      const frame = requestAnimationFrame(() => {
-        requestAnimationFrame(() => setVisible(true));
-      });
-      return () => cancelAnimationFrame(frame);
+      setVisible(false);
+
+      const openTimer = window.setTimeout(() => setVisible(true), OPEN_DELAY_MS);
+      return () => window.clearTimeout(openTimer);
     }
 
     setVisible(false);
-    const timer = window.setTimeout(() => setPresent(false), ANIMATION_MS);
-    return () => window.clearTimeout(timer);
-  }, [open]);
+    const closeTimer = window.setTimeout(() => {
+      setPresent(false);
+      onExited?.();
+    }, PANEL_ANIMATION_MS + 40);
+
+    return () => window.clearTimeout(closeTimer);
+  }, [open, onExited]);
 
   useEffect(() => {
-    if (!open) {
+    if (!present) {
       return;
     }
 
@@ -210,7 +289,7 @@ export function ProductQuickPreview({
       unlockBodyScroll();
       window.removeEventListener("keydown", onKeyDown);
     };
-  }, [open, onClose]);
+  }, [present, onClose]);
 
   useEffect(() => {
     if (!open || !fullProduct) {
@@ -294,17 +373,14 @@ export function ProductQuickPreview({
   const canAddToCart = !optionSoldOut && (!hasVariants || Boolean(selectedVariant));
 
   const modal = (
-    <div
-      className={cn(
-        "fixed inset-0 z-[100] flex items-end justify-center p-0 sm:items-center sm:p-6 lg:p-10",
-        "transition-opacity duration-300 ease-out",
-        visible ? "opacity-100" : "opacity-0",
-      )}
-      role="presentation"
-    >
+    <div className="fixed inset-0 z-[100]" role="presentation">
       <button
         type="button"
-        className="absolute inset-0 bg-deep/60 backdrop-blur-md"
+        className={cn(
+          "absolute inset-0 bg-deep/50 backdrop-blur-[2px]",
+          "transition-opacity ease-out max-md:duration-[340ms] md:duration-300",
+          visible ? "opacity-100" : "opacity-0",
+        )}
         aria-label="Close preview"
         onClick={onClose}
       />
@@ -314,19 +390,22 @@ export function ProductQuickPreview({
         aria-modal="true"
         aria-label={`Preview ${catalogProduct.theme}`}
         className={cn(
-          "relative z-10 flex w-full max-w-lg flex-col overflow-hidden bg-cream sm:max-w-md",
-          "max-h-[min(96vh,880px)]",
-          "rounded-t-[1.75rem] shadow-[0_40px_100px_rgba(43,26,20,0.28)] sm:rounded-[1.75rem]",
-          "transition-all duration-300 ease-out",
-          visible
-            ? "translate-y-0 scale-100 opacity-100"
-            : "translate-y-12 scale-[0.98] opacity-0 sm:translate-y-8",
+          "absolute inset-x-0 bottom-0 mx-auto flex w-full max-w-lg flex-col overflow-hidden bg-cream shadow-2xl sm:max-w-md",
+          "max-h-[min(92dvh,880px)] rounded-t-[1.75rem] md:max-h-[min(96vh,880px)]",
+          "md:left-1/2 md:w-full md:max-w-md md:-translate-x-1/2",
+          "will-change-transform",
+          "transition-transform max-md:duration-[400ms] max-md:ease-[cubic-bezier(0.32,0.72,0,1)] md:duration-[400ms] md:ease-[cubic-bezier(0.32,0.72,0,1)]",
+          visible ? "translate-y-0" : "translate-y-full",
         )}
       >
+        <div
+          className="absolute left-1/2 top-2.5 z-30 h-1 w-10 -translate-x-1/2 rounded-full bg-deep/15 md:hidden"
+          aria-hidden
+        />
         <button
           type="button"
           onClick={onClose}
-          className="absolute right-4 top-4 z-30 flex h-10 w-10 items-center justify-center rounded-full border border-deep/10 bg-white/95 text-deep shadow-lg backdrop-blur-sm transition hover:scale-105"
+          className="absolute right-4 top-6 z-30 flex h-10 w-10 items-center justify-center rounded-full border border-deep/10 bg-white text-deep shadow-sm transition hover:bg-soft md:top-4"
           aria-label="Close"
         >
           <X className="h-4 w-4" />
@@ -336,27 +415,35 @@ export function ProductQuickPreview({
           <div className="relative bg-gradient-to-b from-[#f3ebe4] via-soft to-cream px-6 pb-2 pt-12 sm:px-8 sm:pt-14">
             <div className="pointer-events-none absolute inset-0 bg-[radial-gradient(ellipse_at_50%_0%,rgba(201,123,107,0.1)_0%,transparent_60%)]" />
             <div className="relative mx-auto aspect-[3/4] w-full max-w-[260px] sm:max-w-[300px]">
-              <div className="absolute -inset-3 rounded-[1.5rem] bg-white/40 blur-xl" aria-hidden />
-              <div className="relative h-full w-full overflow-hidden rounded-[1.35rem] border border-white/80 bg-white/70 p-5 shadow-[0_24px_60px_rgba(43,26,20,0.12)] sm:p-6">
-                {isPending && !previewImage ? (
-                  <div className="flex h-full items-center justify-center">
-                    <Spinner size="lg" />
-                  </div>
-                ) : previewImage ? (
-                  <Image
-                    key={`${activeColor?.colorId}-${selectedVariant?.id ?? "base"}-${previewImage}`}
-                    src={previewImage}
-                    alt={catalogProduct.theme}
-                    fill
-                    sizes="(max-width: 640px) 300px, 320px"
-                    className="object-contain transition-opacity duration-300"
-                    priority
-                  />
-                ) : (
-                  <div className="flex h-full items-center justify-center text-sm text-muted">
-                    No image
-                  </div>
-                )}
+              <div
+                className="absolute -inset-3 rounded-[1.5rem] bg-accent/15 blur-2xl"
+                aria-hidden
+              />
+              <div className="relative h-full w-full overflow-hidden rounded-[1.35rem] border border-deep/[0.06] shadow-[0_24px_60px_rgba(43,26,20,0.14)]">
+                <PreviewWaveBackdrop />
+                <div className="relative z-10 h-full w-full p-5 sm:p-6">
+                  {isPending && !previewImage ? (
+                    <div className="flex h-full items-center justify-center">
+                      <Spinner size="lg" />
+                    </div>
+                  ) : previewImage ? (
+                    <div className="relative h-full w-full">
+                      <Image
+                        key={`${activeColor?.colorId}-${selectedVariant?.id ?? "base"}-${previewImage}`}
+                        src={previewImage}
+                        alt={catalogProduct.theme}
+                        fill
+                        sizes="(max-width: 640px) 300px, 320px"
+                        className="object-contain transition-opacity duration-300 drop-shadow-[0_12px_28px_rgba(43,26,20,0.12)]"
+                        priority
+                      />
+                    </div>
+                  ) : (
+                    <div className="flex h-full items-center justify-center text-sm text-muted">
+                      No image
+                    </div>
+                  )}
+                </div>
               </div>
             </div>
           </div>

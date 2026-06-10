@@ -1,7 +1,7 @@
 "use client";
 
 import { X } from "lucide-react";
-import { useEffect, useState } from "react";
+import { useEffect, useRef, useState } from "react";
 
 import { Text } from "@/components/ui/text";
 import { useCart } from "@/hooks/use-cart";
@@ -12,7 +12,8 @@ import { lockBodyScroll, unlockBodyScroll } from "@/lib/utils/scroll-lock";
 
 import { CartDrawerBody } from "./cart-drawer-body";
 
-const ANIMATION_MS = 320;
+const PANEL_ANIMATION_MS = 400;
+const OPEN_DELAY_MS = 60;
 
 export function CartDrawer() {
   const { isOpen, closeCart } = useCartDrawer();
@@ -20,19 +21,20 @@ export function CartDrawer() {
   const { itemCount } = useCart();
   const [present, setPresent] = useState(false);
   const [visible, setVisible] = useState(false);
+  const scrollLockedRef = useRef(false);
 
   useEffect(() => {
     if (isOpen) {
       setPresent(true);
-      const frame = requestAnimationFrame(() => {
-        requestAnimationFrame(() => setVisible(true));
-      });
-      return () => cancelAnimationFrame(frame);
+      setVisible(false);
+
+      const openTimer = window.setTimeout(() => setVisible(true), OPEN_DELAY_MS);
+      return () => window.clearTimeout(openTimer);
     }
 
     setVisible(false);
-    const timer = window.setTimeout(() => setPresent(false), ANIMATION_MS);
-    return () => window.clearTimeout(timer);
+    const closeTimer = window.setTimeout(() => setPresent(false), PANEL_ANIMATION_MS + 40);
+    return () => window.clearTimeout(closeTimer);
   }, [isOpen]);
 
   useEffect(() => {
@@ -47,13 +49,24 @@ export function CartDrawer() {
     };
 
     lockBodyScroll();
+    scrollLockedRef.current = true;
     window.addEventListener("keydown", onKeyDown);
 
     return () => {
-      unlockBodyScroll();
+      if (scrollLockedRef.current) {
+        unlockBodyScroll();
+        scrollLockedRef.current = false;
+      }
       window.removeEventListener("keydown", onKeyDown);
     };
   }, [present, closeCart, isPreviewOpen]);
+
+  useEffect(() => {
+    if (!isOpen && present && scrollLockedRef.current) {
+      unlockBodyScroll();
+      scrollLockedRef.current = false;
+    }
+  }, [isOpen, present]);
 
   if (!present) {
     return null;
@@ -64,7 +77,8 @@ export function CartDrawer() {
       <button
         type="button"
         className={cn(
-          "absolute inset-0 bg-deep/50 backdrop-blur-[2px] transition-opacity duration-300 ease-out",
+          "absolute inset-0 bg-deep/50 backdrop-blur-[2px]",
+          "transition-opacity ease-out max-md:duration-[340ms] md:duration-300",
           visible ? "opacity-100" : "opacity-0",
         )}
         aria-label="Close cart"
@@ -76,10 +90,10 @@ export function CartDrawer() {
         aria-modal="true"
         aria-label="Shopping cart"
         className={cn(
-          "absolute flex flex-col overflow-hidden bg-cream shadow-2xl",
+          "absolute flex flex-col overflow-hidden bg-cream shadow-2xl will-change-transform",
           "inset-x-0 bottom-0 max-h-[min(92vh,780px)] rounded-t-[1.75rem]",
           "md:inset-y-0 md:left-auto md:right-0 md:max-h-none md:w-full md:max-w-[420px] md:rounded-none md:rounded-l-[1.75rem]",
-          "transition-transform duration-300 ease-out",
+          "transition-transform max-md:duration-[400ms] max-md:ease-[cubic-bezier(0.32,0.72,0,1)] md:duration-300 md:ease-out",
           visible
             ? "translate-y-0 md:translate-x-0"
             : "translate-y-full md:translate-y-0 md:translate-x-full",

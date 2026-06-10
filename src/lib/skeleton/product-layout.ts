@@ -1,9 +1,9 @@
 import { getProductDisplayPrice, isProductSoldOut } from "@/lib/utils/product";
 import type { Product } from "@/types/product";
 
-/** Matches ProductCard subtitle (below title). */
-export const PRODUCT_CARD_TYPE_CLASSES =
-  "truncate text-[10px] uppercase tracking-[0.14em] text-warm sm:text-[11px]";
+/** Matches ProductCard theme line (above title). */
+export const PRODUCT_CARD_META_CLASSES =
+  "line-clamp-1 text-[11px] italic leading-snug text-warm sm:text-xs";
 
 /** Matches ProductCard title — centered, two lines max. */
 export const PRODUCT_CARD_TITLE_CLASSES =

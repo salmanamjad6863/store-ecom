@@ -53,18 +53,7 @@ export function ProductCard({ product }: ProductCardProps) {
     product.images[0] ??
     "";
 
-  const modelCount =
-    displayColor.availableModelIds && displayColor.availableModelIds.length > 0
-      ? `${displayColor.availableModelIds.length} models`
-      : product.availableModelIds && product.availableModelIds.length > 0
-        ? `${product.availableModelIds.length} models`
-        : null;
-
-  const metaParts = [
-    product.type,
-    isMultiColor && displayColor.colorName ? displayColor.colorName : null,
-    modelCount,
-  ].filter(Boolean);
+  const themeLine = displayColor.themeLine?.trim();
 
   const handleOpenPreview = () => {
     void prefetchProductBySlug(queryClient, product.slug);
@@ -139,7 +128,7 @@ export function ProductCard({ product }: ProductCardProps) {
           </>
         }
         badge={<ProductCardBadge product={product} />}
-        meta={<span>{metaParts.join(" · ")}</span>}
+        meta={themeLine ? <span>{themeLine}</span> : undefined}
         title={<span className="transition-colors group-hover:text-accent">{product.theme}</span>}
         price={<Price amount={amount} compareAt={compareAt} compareFirst />}
         extra={colorSwatches}

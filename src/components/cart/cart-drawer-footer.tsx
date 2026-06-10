@@ -5,6 +5,7 @@ import { useRouter } from "next/navigation";
 import { Button } from "@/components/ui/button";
 import { Price } from "@/components/ui/price";
 import { Text } from "@/components/ui/text";
+import { scrollToTop } from "@/lib/utils/scroll-lock";
 
 type CartDrawerFooterProps = {
   subtotal: number;
@@ -17,6 +18,7 @@ export function CartDrawerFooter({ subtotal, itemCount, onClose }: CartDrawerFoo
 
   const handleCheckout = () => {
     onClose();
+    scrollToTop();
     router.push("/checkout");
   };
 

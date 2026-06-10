@@ -56,7 +56,7 @@ export function HeroFeaturedCard({ product, index, raised }: HeroFeaturedCardPro
         )}
         aria-label={`Preview ${label}`}
       >
-        <div className="hero-featured-card__media relative mb-2 aspect-[9/16] rounded-xl bg-soft p-3 sm:p-3.5">
+        <div className="hero-featured-card__media relative mb-2 aspect-[9/16] rounded-xl bg-soft p-2 sm:p-3">
           <div className="hero-featured-card__image relative h-full w-full">
             {image ? (
               <Image

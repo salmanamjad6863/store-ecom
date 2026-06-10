@@ -8,6 +8,7 @@ import { Text } from "@/components/ui/text";
 import { useCart } from "@/hooks/use-cart";
 import { useCartHydrated } from "@/hooks/use-cart-hydrated";
 import { useCartDrawer } from "@/providers/cart-drawer-provider";
+import { scrollToTop } from "@/lib/utils/scroll-lock";
 
 import { CheckoutForm } from "./checkout-form";
 
@@ -20,6 +21,10 @@ export function CheckoutContent() {
   const [isCompletingCheckout, setIsCompletingCheckout] = useState(false);
 
   useEffect(() => {
+    scrollToTop();
+  }, []);
+
+  useEffect(() => {
     if (!hydrated || isCompletingCheckout || items.length > 0) {
       return;
     }
@@ -27,6 +32,12 @@ export function CheckoutContent() {
     openCart();
     router.replace("/shop");
   }, [hydrated, isCompletingCheckout, items.length, openCart, router]);
+
+  useEffect(() => {
+    if (hydrated && items.length > 0) {
+      scrollToTop();
+    }
+  }, [hydrated, items.length]);
 
   if (!hydrated) {
     return null;

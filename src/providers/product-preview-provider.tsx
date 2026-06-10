@@ -40,6 +40,7 @@ const ProductPreviewContext = createContext<ProductPreviewContextValue | null>(n
 export function ProductPreviewProvider({ children }: { children: ReactNode }) {
   const queryClient = useQueryClient();
   const [preview, setPreview] = useState<PreviewState | null>(null);
+  const [isOpen, setIsOpen] = useState(false);
 
   const openPreview = useCallback((product: Product, options?: PreviewOptions) => {
     setPreview({
@@ -47,9 +48,14 @@ export function ProductPreviewProvider({ children }: { children: ReactNode }) {
       initialColorId: options?.initialColorId,
       initialVariantId: options?.initialVariantId,
     });
+    setIsOpen(true);
   }, []);
 
   const closePreview = useCallback(() => {
+    setIsOpen(false);
+  }, []);
+
+  const handlePreviewExited = useCallback(() => {
     setPreview(null);
   }, []);
 
@@ -72,12 +78,12 @@ export function ProductPreviewProvider({ children }: { children: ReactNode }) {
 
   const value = useMemo(
     () => ({
-      isOpen: Boolean(preview),
+      isOpen: isOpen && Boolean(preview),
       openPreview,
       openPreviewFromCartItem,
       closePreview,
     }),
-    [preview, openPreview, openPreviewFromCartItem, closePreview],
+    [isOpen, preview, openPreview, openPreviewFromCartItem, closePreview],
   );
 
   return (
@@ -86,11 +92,12 @@ export function ProductPreviewProvider({ children }: { children: ReactNode }) {
       {preview && typeof document !== "undefined"
         ? createPortal(
             <ProductQuickPreview
-              open
+              open={isOpen}
               product={preview.product}
               initialColorId={preview.initialColorId}
               initialVariantId={preview.initialVariantId}
               onClose={closePreview}
+              onExited={handlePreviewExited}
             />,
             document.body,
           )
