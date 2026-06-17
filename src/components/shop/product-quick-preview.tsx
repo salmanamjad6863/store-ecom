@@ -3,7 +3,7 @@
 import { useQuery } from "@tanstack/react-query";
 import Image from "next/image";
 import { X } from "lucide-react";
-import { useEffect, useMemo, useState } from "react";
+import { useEffect, useMemo, useRef, useState } from "react";
 import { createPortal } from "react-dom";
 
 import { Button } from "@/components/ui/button";
@@ -289,6 +289,8 @@ export function ProductQuickPreview({
   );
   const [quantity, setQuantity] = useState(1);
   const [hasUserChangedSelection, setHasUserChangedSelection] = useState(false);
+  const [isAdding, setIsAdding] = useState(false);
+  const isAddingRef = useRef(false);
 
   const placeholderProduct = useMemo(
     (): ProductWithVariants => ({ ...product, variants: [] }),
@@ -389,6 +391,8 @@ export function ProductQuickPreview({
     setSelectedModelId(getInitialModelId(product, initialVariantId));
     setQuantity(1);
     setHasUserChangedSelection(false);
+    isAddingRef.current = false;
+    setIsAdding(false);
   }, [open, product, initialColorId, initialVariantId, initialImage]);
 
   useEffect(() => {
@@ -480,7 +484,7 @@ export function ProductQuickPreview({
   };
 
   const handleAddToCart = async () => {
-    if (optionSoldOut) {
+    if (isAddingRef.current || optionSoldOut) {
       return;
     }
 
@@ -494,27 +498,36 @@ export function ProductQuickPreview({
       return;
     }
 
-    const result = await addVariantToCartLive(
-      catalogProduct,
-      selectedVariant ?? undefined,
-      quantity,
-      activeColor?.colorId,
-    );
+    isAddingRef.current = true;
+    setIsAdding(true);
 
-    if (!result.ok) {
-      toast(result.message, "error");
-      return;
+    try {
+      const result = await addVariantToCartLive(
+        catalogProduct,
+        selectedVariant ?? undefined,
+        quantity,
+        activeColor?.colorId,
+        { catalog: optionsLoading ? undefined : catalogProduct },
+      );
+
+      if (!result.ok) {
+        toast(result.message, "error");
+        return;
+      }
+
+      const label = selectedVariant
+        ? `${catalogProduct.theme} (${selectedVariant.modelName} · ${activeColor?.colorName})`
+        : catalogProduct.theme;
+
+      toast(
+        quantity > 1 ? `${quantity} × ${label} added to cart` : `${label} added to cart`,
+        "success",
+      );
+      onClose();
+    } finally {
+      isAddingRef.current = false;
+      setIsAdding(false);
     }
-
-    const label = selectedVariant
-      ? `${catalogProduct.theme} (${selectedVariant.modelName} · ${activeColor?.colorName})`
-      : catalogProduct.theme;
-
-    toast(
-      quantity > 1 ? `${quantity} × ${label} added to cart` : `${label} added to cart`,
-      "success",
-    );
-    onClose();
   };
 
   if (!present) {
@@ -714,14 +727,17 @@ export function ProductQuickPreview({
           <Button
             type="button"
             className="w-full"
-            disabled={!canAddToCart}
-            onClick={handleAddToCart}
+            disabled={!canAddToCart || isAdding}
+            aria-busy={isAdding}
+            onClick={() => void handleAddToCart()}
           >
-            {optionSoldOut
-              ? "Sold out"
-              : requiresModelSelection && !modelSelected
-                ? "Select your model"
-                : "Add to cart"}
+            {isAdding
+              ? "Adding to cart…"
+              : optionSoldOut
+                ? "Sold out"
+                : requiresModelSelection && !modelSelected
+                  ? "Select your model"
+                  : "Add to cart"}
           </Button>
         </div>
         </div>

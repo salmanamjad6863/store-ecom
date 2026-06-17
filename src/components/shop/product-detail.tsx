@@ -296,6 +296,7 @@ export function ProductDetail({ slug, initialProduct }: ProductDetailProps) {
             />
             <AddToCartButton
               product={product}
+              catalog={product}
               variant={selectedVariant ?? undefined}
               colorId={activeColor.colorId}
               colorName={activeColor.colorName}

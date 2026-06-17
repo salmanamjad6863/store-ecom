@@ -5,23 +5,35 @@ import { addVariantToCart, useCartStore } from "@/stores/cart-store";
 import { getCartLineKey } from "@/types/cart";
 import type { Product } from "@/types/product";
 import type { ProductVariant } from "@/types/product-variant";
+import type { ProductWithVariants } from "@/types/product";
 
 export type AddToCartResult =
   | { ok: true }
   | { ok: false; message: string };
 
-export async function addVariantToCartLive(
-  product: Product,
-  variant: ProductVariant | undefined,
-  quantity = 1,
-  colorId?: string,
-): Promise<AddToCartResult> {
-  const live = await fetchProductWithVariantsById(product.id);
+type AddToCartOptions = {
+  /** Already-loaded catalog row — skips a network round-trip when variants are present. */
+  catalog?: ProductWithVariants;
+};
 
-  if (!live || live.hidden) {
-    return { ok: false, message: "This product is no longer available." };
+function canUseCatalog(product: Product, catalog?: ProductWithVariants): catalog is ProductWithVariants {
+  if (!catalog || catalog.id !== product.id || catalog.hidden) {
+    return false;
   }
 
+  if (productHasVariants(catalog)) {
+    return catalog.variants.length > 0;
+  }
+
+  return true;
+}
+
+function validateAndAdd(
+  live: ProductWithVariants,
+  variant: ProductVariant | undefined,
+  quantity: number,
+  colorId?: string,
+): AddToCartResult {
   const resolvedColorId =
     colorId ?? variant?.colorId ?? live.colors[0]?.colorId ?? "default";
 
@@ -50,15 +62,7 @@ export async function addVariantToCartLive(
     const requestedQuantity = (existing?.quantity ?? 0) + quantity;
 
     if (requestedQuantity > liveVariant.quantity) {
-      const available = liveVariant.quantity;
-      if (available <= 0) {
-        return { ok: false, message: "This option is sold out." };
-      }
-
-      return {
-        ok: false,
-        message: `Only ${available} available for this model.`,
-      };
+      return { ok: false, message: "This option is sold out." };
     }
 
     addVariantToCart(live, liveVariant, quantity, resolvedColorId);
@@ -78,12 +82,29 @@ export async function addVariantToCartLive(
   const requestedQuantity = (existing?.quantity ?? 0) + quantity;
 
   if (requestedQuantity > live.quantity) {
-    return {
-      ok: false,
-      message: `Only ${live.quantity} available.`,
-    };
+    return { ok: false, message: "This product is sold out." };
   }
 
   addVariantToCart(live, undefined, quantity, resolvedColorId);
   return { ok: true };
+}
+
+export async function addVariantToCartLive(
+  product: Product,
+  variant: ProductVariant | undefined,
+  quantity = 1,
+  colorId?: string,
+  options: AddToCartOptions = {},
+): Promise<AddToCartResult> {
+  if (canUseCatalog(product, options.catalog)) {
+    return validateAndAdd(options.catalog, variant, quantity, colorId);
+  }
+
+  const live = await fetchProductWithVariantsById(product.id);
+
+  if (!live || live.hidden) {
+    return { ok: false, message: "This product is no longer available." };
+  }
+
+  return validateAndAdd(live, variant, quantity, colorId);
 }

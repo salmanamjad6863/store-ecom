@@ -1,18 +1,19 @@
 "use client";
 
-import { useState } from "react";
+import { useRef, useState } from "react";
 
 import { Button } from "@/components/ui/button";
 import { addVariantToCartLive } from "@/lib/cart/add-to-cart-live";
 import { cn } from "@/lib/utils/cn";
 import { useToast } from "@/providers/toast-provider";
-import type { Product } from "@/types/product";
+import type { Product, ProductWithVariants } from "@/types/product";
 import type { ProductVariant } from "@/types/product-variant";
 import { isProductSoldOut } from "@/lib/utils/product";
 import { isVariantSoldOut, productHasVariants } from "@/lib/utils/variant";
 
 type AddToCartButtonProps = {
   product: Product;
+  catalog?: ProductWithVariants;
   variant?: ProductVariant;
   colorId?: string;
   colorName?: string;
@@ -23,6 +24,7 @@ type AddToCartButtonProps = {
 
 export function AddToCartButton({
   product,
+  catalog,
   variant,
   colorId,
   colorName,
@@ -32,6 +34,7 @@ export function AddToCartButton({
 }: AddToCartButtonProps) {
   const [added, setAdded] = useState(false);
   const [isAdding, setIsAdding] = useState(false);
+  const isAddingRef = useRef(false);
   const { toast } = useToast();
 
   const soldOut = variant
@@ -41,16 +44,19 @@ export function AddToCartButton({
   const requiresVariant = productHasVariants(product);
 
   const handleClick = async () => {
-    if (soldOut || (requiresVariant && !variant) || isAdding) {
+    if (soldOut || (requiresVariant && !variant) || isAddingRef.current) {
       return;
     }
 
     const resolvedColorId = colorId ?? variant?.colorId ?? product.colors[0]?.colorId ?? "default";
 
+    isAddingRef.current = true;
     setIsAdding(true);
 
     try {
-      const result = await addVariantToCartLive(product, variant, quantity, resolvedColorId);
+      const result = await addVariantToCartLive(product, variant, quantity, resolvedColorId, {
+        catalog,
+      });
 
       if (!result.ok) {
         toast(result.message, "error");
@@ -70,6 +76,7 @@ export function AddToCartButton({
       );
       window.setTimeout(() => setAdded(false), 1500);
     } finally {
+      isAddingRef.current = false;
       setIsAdding(false);
     }
   };
@@ -84,12 +91,13 @@ export function AddToCartButton({
         soldOut && "border-danger/40 bg-danger/10 font-semibold text-danger disabled:opacity-100",
       )}
       disabled={soldOut || (requiresVariant && !variant) || isAdding}
+      aria-busy={isAdding}
       onClick={() => void handleClick()}
     >
       {soldOut
         ? "Sold out"
         : isAdding
-          ? "Adding…"
+          ? "Adding to cart…"
           : requiresVariant && !variant
             ? "Select options"
             : added

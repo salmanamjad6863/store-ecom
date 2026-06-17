@@ -17,11 +17,10 @@ export function CheckoutContent() {
   const router = useRouter();
   const hydrated = useCartHydrated();
   const { items, getSubtotal } = useCart();
-  const { revalidate, isRevalidating, lastResult } = useRevalidateCart();
+  const { revalidate } = useRevalidateCart();
   const { openCart } = useCartDrawer();
   const subtotal = getSubtotal();
   const [isCompletingCheckout, setIsCompletingCheckout] = useState(false);
-  const [initialSyncDone, setInitialSyncDone] = useState(false);
 
   useEffect(() => {
     scrollToTop();
@@ -32,17 +31,17 @@ export function CheckoutContent() {
       return;
     }
 
-    void revalidate().finally(() => setInitialSyncDone(true));
+    void revalidate();
   }, [hydrated, revalidate]);
 
   useEffect(() => {
-    if (!hydrated || !initialSyncDone || isCompletingCheckout || items.length > 0) {
+    if (!hydrated || isCompletingCheckout || items.length > 0) {
       return;
     }
 
     openCart();
     router.replace("/shop");
-  }, [hydrated, initialSyncDone, isCompletingCheckout, items.length, openCart, router]);
+  }, [hydrated, isCompletingCheckout, items.length, openCart, router]);
 
   useEffect(() => {
     if (hydrated && items.length > 0) {
@@ -50,7 +49,7 @@ export function CheckoutContent() {
     }
   }, [hydrated, items.length]);
 
-  if (!hydrated || !initialSyncDone) {
+  if (!hydrated) {
     return null;
   }
 
@@ -73,9 +72,6 @@ export function CheckoutContent() {
         items={items}
         subtotal={subtotal}
         onCompletingChange={setIsCompletingCheckout}
-        syncResult={lastResult}
-        isRevalidating={isRevalidating}
-        onRevalidate={revalidate}
       />
     </Container>
   );
