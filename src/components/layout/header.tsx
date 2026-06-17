@@ -19,8 +19,8 @@ export function Header() {
 
   return (
     <header className="sticky top-0 z-50 border-b border-deep/10 bg-cream/95 backdrop-blur-md">
-      <div className="flex h-14 w-full items-center justify-between gap-4 px-6 sm:h-16 sm:px-10 lg:px-14">
-        <div className="flex min-w-0 items-center gap-3">
+      <div className="relative flex h-14 w-full items-center justify-between gap-4 px-6 sm:h-16 sm:px-10 lg:px-14">
+        <div className="z-10 flex min-w-0 items-center gap-3">
           <button
             type="button"
             className="inline-flex h-8 w-8 shrink-0 items-center justify-center rounded-md border border-deep/10 text-deep transition-colors hover:border-accent/35 hover:text-accent"
@@ -30,8 +30,10 @@ export function Header() {
           >
             {isFilterDrawerOpen ? <X className="h-5 w-5" /> : <Menu className="h-5 w-5" />}
           </button>
-          <BrandLogo />
+          <BrandLogo className="hidden md:inline-flex" />
         </div>
+
+        <BrandLogo className="absolute left-1/2 top-1/2 -translate-x-1/2 -translate-y-1/2 md:hidden" />
 
         <nav className="hidden items-center gap-8 md:flex">
           {navLinks.map((link) => (
@@ -45,7 +47,7 @@ export function Header() {
           ))}
         </nav>
 
-        <div className="flex items-center gap-2 sm:gap-3">
+        <div className="z-10 flex items-center gap-2 sm:gap-3">
           <CartNavLink />
           <Button href="/shop" size="sm" className="hidden sm:inline-flex">
             Shop Now ✦

@@ -1,5 +1,5 @@
 import type { Metadata } from "next";
-import { Cormorant_Garamond, DM_Sans, Playfair_Display } from "next/font/google";
+import { Cormorant_Garamond, DM_Sans, Great_Vibes, Playfair_Display } from "next/font/google";
 
 import { LayoutSwitcher } from "@/components/layout/layout-switcher";
 import { env } from "@/lib/env";
@@ -29,6 +29,12 @@ const cormorant = Cormorant_Garamond({
   style: ["italic"],
 });
 
+const greatVibes = Great_Vibes({
+  variable: "--font-great-vibes",
+  subsets: ["latin"],
+  weight: "400",
+});
+
 export const metadata: Metadata = {
   title: env.storeName,
   description: `${env.storeName} — shop online with cash on delivery.`,
@@ -42,7 +48,7 @@ export default function RootLayout({
   return (
     <html
       lang="en"
-      className={`${dmSans.variable} ${playfair.variable} ${cormorant.variable} min-h-dvh antialiased`}
+      className={`${dmSans.variable} ${playfair.variable} ${cormorant.variable} ${greatVibes.variable} min-h-dvh antialiased`}
     >
       <body className="flex min-h-dvh flex-col bg-background text-foreground">
         <QueryProvider>

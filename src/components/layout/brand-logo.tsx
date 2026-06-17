@@ -33,13 +33,13 @@ export function BrandLogo({ className, light = false }: BrandLogoProps) {
     <Link
       href="/"
       className={cn(
-        "font-serif text-xl font-black tracking-tight sm:text-2xl",
+        "brand-logo font-brand text-[1.65rem] leading-none tracking-[0.02em] sm:text-[1.85rem] md:text-[2rem]",
         light ? "text-cream" : "text-deep",
         className,
       )}
     >
       {first}
-      <span className="text-accent">{accent}</span>
+      <span className={cn("brand-logo__accent text-accent", light && "text-blush")}>{accent}</span>
     </Link>
   );
 }
