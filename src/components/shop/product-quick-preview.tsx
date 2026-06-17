@@ -14,6 +14,7 @@ import { Spinner } from "@/components/ui/spinner";
 import { Text } from "@/components/ui/text";
 import { usePhoneModels } from "@/hooks/use-phone-models";
 import { queryKeys } from "@/lib/queries/keys";
+import { productQueryDefaults } from "@/lib/queries/product-query-options";
 import { fetchProductWithVariantsById } from "@/lib/queries/products";
 import { cn } from "@/lib/utils/cn";
 import { lockBodyScroll, unlockBodyScroll } from "@/lib/utils/scroll-lock";
@@ -22,7 +23,7 @@ import {
   getColorHeroImage,
   getVariantsForColor,
   isColorSoldOut,
-  resolveShopDisplayColor,
+  resolvePreferredColor,
 } from "@/lib/utils/product-colors";
 import { getProductDisplayPrice } from "@/lib/utils/product";
 import {
@@ -34,20 +35,117 @@ import {
 } from "@/lib/utils/variant";
 import { addVariantToCart } from "@/stores/cart-store";
 import { useToast } from "@/providers/toast-provider";
-import type { Product } from "@/types/product";
+import type { Product, ProductWithVariants } from "@/types/product";
 import type { PhoneModel } from "@/types/phone-model";
+
+function isProductWithVariants(product: Product): product is ProductWithVariants {
+  return Array.isArray((product as ProductWithVariants).variants);
+}
 
 type ProductQuickPreviewProps = {
   open: boolean;
   product: Product;
   initialColorId?: string;
   initialVariantId?: string;
+  initialImage?: string;
   onClose: () => void;
   onExited?: () => void;
 };
 
 const PANEL_ANIMATION_MS = 550;
 const OPEN_DELAY_MS = 100;
+const IMAGE_CROSSFADE_MS = 160;
+
+function getListingImage(
+  product: Product,
+  colorId?: string,
+  fallbackImage?: string,
+): string {
+  if (fallbackImage) {
+    return fallbackImage;
+  }
+
+  const color = resolvePreferredColor(product, colorId);
+  return (
+    color.heroImage ??
+    color.images[0] ??
+    product.heroImage ??
+    product.images[0] ??
+    ""
+  );
+}
+
+function getInitialModelId(
+  product: Product,
+  variantId?: string,
+): string {
+  if (!variantId) {
+    return "";
+  }
+
+  const variants = isProductWithVariants(product) ? product.variants : undefined;
+  return variants?.find((variant) => variant.id === variantId)?.modelId ?? "";
+}
+
+function PreviewProductImage({ src, alt }: { src: string; alt: string }) {
+  const [shownSrc, setShownSrc] = useState(src);
+  const [visible, setVisible] = useState(true);
+
+  useEffect(() => {
+    if (!src || src === shownSrc) {
+      return;
+    }
+
+    let cancelled = false;
+    const img = new window.Image();
+    img.src = src;
+
+    const swap = () => {
+      if (cancelled || src === shownSrc) {
+        return;
+      }
+      setVisible(false);
+      window.setTimeout(() => {
+        if (cancelled) {
+          return;
+        }
+        setShownSrc(src);
+        setVisible(true);
+      }, IMAGE_CROSSFADE_MS);
+    };
+
+    if (img.complete) {
+      swap();
+    } else {
+      img.onload = swap;
+    }
+
+    return () => {
+      cancelled = true;
+      img.onload = null;
+    };
+  }, [src, shownSrc]);
+
+  if (!shownSrc) {
+    return null;
+  }
+
+  return (
+    <div className="relative h-full w-full">
+      <Image
+        src={shownSrc}
+        alt={alt}
+        fill
+        sizes="(max-width: 640px) 300px, 320px"
+        className={cn(
+          "object-contain transition-opacity duration-200 ease-out drop-shadow-[0_12px_28px_rgba(43,26,20,0.12)]",
+          visible ? "opacity-100" : "opacity-0",
+        )}
+        priority
+      />
+    </div>
+  );
+}
 
 /** Rolling water surface — tiles seamlessly; body fills below the crest line. */
 const WAVE_PATH_BACK =
@@ -174,27 +272,48 @@ export function ProductQuickPreview({
   product,
   initialColorId,
   initialVariantId,
+  initialImage,
   onClose,
   onExited,
 }: ProductQuickPreviewProps) {
   const { toast } = useToast();
+  const listingColor = useMemo(
+    () => resolvePreferredColor(product, initialColorId),
+    [product, initialColorId],
+  );
+  const listingImage = useMemo(
+    () => getListingImage(product, initialColorId, initialImage),
+    [product, initialColorId, initialImage],
+  );
+
   const [present, setPresent] = useState(false);
   const [visible, setVisible] = useState(false);
-  const [selectedColorId, setSelectedColorId] = useState("");
-  const [selectedModelId, setSelectedModelId] = useState("");
+  const [selectedColorId, setSelectedColorId] = useState(listingColor.colorId);
+  const [selectedModelId, setSelectedModelId] = useState(() =>
+    getInitialModelId(product, initialVariantId),
+  );
   const [quantity, setQuantity] = useState(1);
 
-  const { data: fullProduct, isPending } = useQuery({
+  const placeholderProduct = useMemo(
+    (): ProductWithVariants => ({ ...product, variants: [] }),
+    [product],
+  );
+
+  const { data: fullProduct, isFetching } = useQuery({
     queryKey: queryKeys.products.detailWithVariantsById(product.id),
     queryFn: () => fetchProductWithVariantsById(product.id),
     enabled: open,
+    placeholderData: (previousData): ProductWithVariants =>
+      previousData ?? placeholderProduct,
+    ...productQueryDefaults,
   });
 
   const { data: phoneModels = [] } = usePhoneModels();
 
-  const catalogProduct = fullProduct ?? product;
-  const variants = fullProduct?.variants ?? [];
+  const catalogProduct = fullProduct ?? placeholderProduct;
+  const variants = catalogProduct.variants;
   const hasVariants = productHasVariants(catalogProduct) && variants.length > 0;
+  const optionsLoading = isFetching && productHasVariants(product) && variants.length === 0;
 
   const activeColor = useMemo(
     () => getColorById(catalogProduct, selectedColorId) ?? catalogProduct.colors[0],
@@ -253,6 +372,19 @@ export function ProductQuickPreview({
     return catalogProduct.heroImage ?? catalogProduct.images[0] ?? "";
   }, [selectedVariant, activeColor, variants, catalogProduct]);
 
+  const displayImage = previewImage || listingImage;
+
+  useEffect(() => {
+    if (!open) {
+      return;
+    }
+
+    const color = resolvePreferredColor(product, initialColorId);
+    setSelectedColorId(color.colorId);
+    setSelectedModelId(getInitialModelId(product, initialVariantId));
+    setQuantity(1);
+  }, [open, product, initialColorId, initialVariantId]);
+
   useEffect(() => {
     if (open) {
       setPresent(true);
@@ -292,20 +424,20 @@ export function ProductQuickPreview({
   }, [present, onClose]);
 
   useEffect(() => {
-    if (!open || !fullProduct) {
+    if (!open || optionsLoading) {
       return;
     }
 
     const cartVariant = initialVariantId
-      ? fullProduct.variants.find((variant) => variant.id === initialVariantId)
+      ? catalogProduct.variants.find((variant) => variant.id === initialVariantId)
       : undefined;
     const color = cartVariant
-      ? (getColorById(fullProduct, cartVariant.colorId) ??
-        resolveShopDisplayColor(fullProduct, initialColorId))
-      : resolveShopDisplayColor(fullProduct, initialColorId);
-    const nextColorVariants = getVariantsForColor(fullProduct.variants, color.colorId);
+      ? (getColorById(catalogProduct, cartVariant.colorId) ??
+        resolvePreferredColor(catalogProduct, initialColorId))
+      : resolvePreferredColor(catalogProduct, initialColorId);
+    const nextColorVariants = getVariantsForColor(catalogProduct.variants, color.colorId);
     const selection = resolveModelSelection(
-      fullProduct,
+      catalogProduct,
       nextColorVariants,
       cartVariant?.modelId,
       color.colorId,
@@ -314,7 +446,7 @@ export function ProductQuickPreview({
     setSelectedColorId(color.colorId);
     setSelectedModelId(cartVariant?.modelId ?? selection?.modelId ?? "");
     setQuantity(1);
-  }, [open, fullProduct, initialColorId, initialVariantId]);
+  }, [open, catalogProduct, initialColorId, initialVariantId, optionsLoading]);
 
   useEffect(() => {
     setQuantity((current) => Math.min(Math.max(current, 1), maxQuantity));
@@ -428,22 +560,12 @@ export function ProductQuickPreview({
               <div className="relative h-full w-full overflow-hidden rounded-[1.35rem] border border-deep/[0.06] shadow-[0_24px_60px_rgba(43,26,20,0.14)]">
                 <PreviewWaveBackdrop />
                 <div className="relative z-10 h-full w-full p-5 sm:p-6">
-                  {isPending && !previewImage ? (
-                    <div className="flex h-full items-center justify-center">
-                      <Spinner size="lg" />
-                    </div>
-                  ) : previewImage ? (
-                    <div className="relative h-full w-full">
-                      <Image
-                        key={`${activeColor?.colorId}-${selectedVariant?.id ?? "base"}-${previewImage}`}
-                        src={previewImage}
-                        alt={catalogProduct.theme}
-                        fill
-                        sizes="(max-width: 640px) 300px, 320px"
-                        className="object-contain transition-opacity duration-300 drop-shadow-[0_12px_28px_rgba(43,26,20,0.12)]"
-                        priority
-                      />
-                    </div>
+                  {displayImage ? (
+                    <PreviewProductImage
+                      key={`${product.id}:${initialColorId ?? ""}:${initialVariantId ?? ""}:${initialImage ?? ""}`}
+                      src={displayImage}
+                      alt={catalogProduct.theme}
+                    />
                   ) : (
                     <div className="flex h-full items-center justify-center text-sm text-muted">
                       No image
@@ -484,7 +606,7 @@ export function ProductQuickPreview({
               ) : null}
             </div>
 
-            {isPending ? (
+            {optionsLoading ? (
               <div className="flex justify-center py-8">
                 <Spinner />
               </div>
@@ -531,7 +653,7 @@ export function ProductQuickPreview({
                     models={availableModels}
                     selectedModelId={selectedModelId}
                     onSelect={handleModelSelect}
-                    disabled={isPending}
+                    disabled={optionsLoading}
                   />
                 ) : null}
 

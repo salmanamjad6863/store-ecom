@@ -55,8 +55,12 @@ export function ProductCard({ product }: ProductCardProps) {
 
   const themeLine = displayColor.themeLine?.trim();
 
-  const handleOpenPreview = () => {
+  const handlePrefetchPreview = () => {
     void prefetchProductById(queryClient, product.id);
+  };
+
+  const handleOpenPreview = () => {
+    handlePrefetchPreview();
     openPreview(product, { initialColorId: displayColor.colorId });
   };
 
@@ -96,6 +100,8 @@ export function ProductCard({ product }: ProductCardProps) {
   return (
     <ProductCardShell
       className="h-full cursor-pointer"
+      onPointerEnter={handlePrefetchPreview}
+      onFocus={handlePrefetchPreview}
       onClick={handleOpenPreview}
       onKeyDown={(event) => {
         if (event.key === "Enter" || event.key === " ") {
