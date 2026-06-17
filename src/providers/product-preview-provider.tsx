@@ -12,20 +12,23 @@ import {
 import { createPortal } from "react-dom";
 
 import { ProductQuickPreview } from "@/components/shop/product-quick-preview";
-import { prefetchProductBySlug } from "@/lib/queries/prefetch-product";
-import { fetchProductBySlug } from "@/lib/queries/products";
+import { queryKeys } from "@/lib/queries/keys";
+import { prefetchProductById } from "@/lib/queries/prefetch-product";
+import { fetchProductWithVariantsById } from "@/lib/queries/products";
 import type { CartItem } from "@/types/cart";
 import type { Product } from "@/types/product";
 
 type PreviewOptions = {
   initialColorId?: string;
   initialVariantId?: string;
+  initialImage?: string;
 };
 
 type PreviewState = {
   product: Product;
   initialColorId?: string;
   initialVariantId?: string;
+  initialImage?: string;
 };
 
 type ProductPreviewContextValue = {
@@ -47,6 +50,7 @@ export function ProductPreviewProvider({ children }: { children: ReactNode }) {
       product,
       initialColorId: options?.initialColorId,
       initialVariantId: options?.initialVariantId,
+      initialImage: options?.initialImage,
     });
     setIsOpen(true);
   }, []);
@@ -61,8 +65,16 @@ export function ProductPreviewProvider({ children }: { children: ReactNode }) {
 
   const openPreviewFromCartItem = useCallback(
     async (item: CartItem) => {
-      await prefetchProductBySlug(queryClient, item.slug);
-      const product = await fetchProductBySlug(item.slug);
+      const cached = queryClient.getQueryData<Awaited<ReturnType<typeof fetchProductWithVariantsById>>>(
+        queryKeys.products.detailWithVariantsById(item.productId),
+      );
+
+      let product = cached ?? null;
+
+      if (!product) {
+        await prefetchProductById(queryClient, item.productId);
+        product = await fetchProductWithVariantsById(item.productId);
+      }
 
       if (!product) {
         return;
@@ -71,6 +83,7 @@ export function ProductPreviewProvider({ children }: { children: ReactNode }) {
       openPreview(product, {
         initialColorId: item.colorId,
         initialVariantId: item.variantId || undefined,
+        initialImage: item.image,
       });
     },
     [queryClient, openPreview],
@@ -92,10 +105,12 @@ export function ProductPreviewProvider({ children }: { children: ReactNode }) {
       {preview && typeof document !== "undefined"
         ? createPortal(
             <ProductQuickPreview
+              key={`${preview.product.id}:${preview.initialColorId ?? ""}:${preview.initialVariantId ?? ""}:${preview.initialImage ?? ""}`}
               open={isOpen}
               product={preview.product}
               initialColorId={preview.initialColorId}
               initialVariantId={preview.initialVariantId}
+              initialImage={preview.initialImage}
               onClose={closePreview}
               onExited={handlePreviewExited}
             />,

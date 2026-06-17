@@ -5,7 +5,7 @@ import Image from "next/image";
 import { useMemo } from "react";
 
 import { env } from "@/lib/env";
-import { prefetchProductBySlug } from "@/lib/queries/prefetch-product";
+import { prefetchProductById } from "@/lib/queries/prefetch-product";
 import { formatCurrency } from "@/lib/utils/format";
 import { getProductDisplayPrice } from "@/lib/utils/product";
 import { resolveListingDisplayColor } from "@/lib/utils/product-colors";
@@ -35,8 +35,12 @@ export function HeroFeaturedCard({ product, index, raised }: HeroFeaturedCardPro
   const image = getProductImage(product, displayColor.colorId);
   const label = product.theme || product.name;
 
+  const handlePrefetchPreview = () => {
+    void prefetchProductById(queryClient, product.id);
+  };
+
   const handleOpenPreview = () => {
-    void prefetchProductBySlug(queryClient, product.slug);
+    handlePrefetchPreview();
     openPreview(product, { initialColorId: displayColor.colorId });
   };
 
@@ -47,6 +51,8 @@ export function HeroFeaturedCard({ product, index, raised }: HeroFeaturedCardPro
     >
       <button
         type="button"
+        onPointerEnter={handlePrefetchPreview}
+        onFocus={handlePrefetchPreview}
         onClick={handleOpenPreview}
         className={cn(
           "hero-featured-card group block w-full cursor-pointer rounded-2xl bg-white p-3 text-left",

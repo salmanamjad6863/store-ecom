@@ -80,6 +80,21 @@ export function resolveListingDisplayColor(
   return inStock ?? product.colors[0];
 }
 
+/** Honors an explicit color choice (e.g. cart line) without stock-based fallback. */
+export function resolvePreferredColor(
+  product: Product,
+  preferredColorId?: string,
+): ProductColor {
+  if (preferredColorId) {
+    const preferred = getColorById(product, preferredColorId);
+    if (preferred) {
+      return preferred;
+    }
+  }
+
+  return resolveListingDisplayColor(product, preferredColorId);
+}
+
 export function getColorHeroImage(
   color: ProductColor,
   variants: ProductVariant[],

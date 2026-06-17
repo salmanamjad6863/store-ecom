@@ -14,6 +14,8 @@ type ProductCardShellProps = {
   extra?: React.ReactNode;
   className?: string;
   onClick?: () => void;
+  onPointerEnter?: () => void;
+  onFocus?: () => void;
   onKeyDown?: (event: React.KeyboardEvent) => void;
   role?: string;
   tabIndex?: number;
@@ -30,6 +32,8 @@ export function ProductCardShell({
   extra,
   className,
   onClick,
+  onPointerEnter,
+  onFocus,
   onKeyDown,
   role,
   tabIndex,
@@ -45,14 +49,16 @@ export function ProductCardShell({
         className,
       )}
       onClick={onClick}
+      onPointerEnter={onPointerEnter}
+      onFocus={onFocus}
       onKeyDown={onKeyDown}
       role={role}
       tabIndex={tabIndex}
       aria-label={ariaLabel}
     >
       <div className="relative p-2 sm:p-2.5">
-        <div className="relative aspect-[3/4] overflow-hidden rounded-xl bg-soft p-2.5 sm:rounded-2xl sm:p-3">
-          <div className="relative h-full w-full">{image}</div>
+        <div className="relative aspect-[9/16] rounded-xl bg-soft p-2.5 sm:rounded-2xl sm:p-3">
+          <div className="relative h-full w-full min-h-0">{image}</div>
         </div>
       </div>
 
