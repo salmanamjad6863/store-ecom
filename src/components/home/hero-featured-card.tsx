@@ -6,6 +6,7 @@ import { useMemo } from "react";
 
 import { env } from "@/lib/env";
 import { prefetchProductById } from "@/lib/queries/prefetch-product";
+import { preloadImage } from "@/lib/utils/preload-image";
 import { formatCurrency } from "@/lib/utils/format";
 import { getProductDisplayPrice } from "@/lib/utils/product";
 import { resolveListingDisplayColor } from "@/lib/utils/product-colors";
@@ -37,11 +38,16 @@ export function HeroFeaturedCard({ product, index, raised }: HeroFeaturedCardPro
 
   const handlePrefetchPreview = () => {
     void prefetchProductById(queryClient, product.id);
+    preloadImage(image);
   };
 
   const handleOpenPreview = () => {
+    preloadImage(image);
     handlePrefetchPreview();
-    openPreview(product, { initialColorId: displayColor.colorId });
+    openPreview(product, {
+      initialColorId: displayColor.colorId,
+      initialImage: image,
+    });
   };
 
   return (
@@ -52,6 +58,7 @@ export function HeroFeaturedCard({ product, index, raised }: HeroFeaturedCardPro
       <button
         type="button"
         onPointerEnter={handlePrefetchPreview}
+        onTouchStart={handlePrefetchPreview}
         onFocus={handlePrefetchPreview}
         onClick={handleOpenPreview}
         className={cn(

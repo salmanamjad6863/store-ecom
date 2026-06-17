@@ -6,6 +6,7 @@ import { useEffect, useMemo, useState } from "react";
 
 import { Price } from "@/components/ui/price";
 import { prefetchProductById } from "@/lib/queries/prefetch-product";
+import { preloadImage } from "@/lib/utils/preload-image";
 import {
   getColorById,
   resolveListingDisplayColor,
@@ -57,11 +58,16 @@ export function ProductCard({ product }: ProductCardProps) {
 
   const handlePrefetchPreview = () => {
     void prefetchProductById(queryClient, product.id);
+    preloadImage(image);
   };
 
   const handleOpenPreview = () => {
+    preloadImage(image);
     handlePrefetchPreview();
-    openPreview(product, { initialColorId: displayColor.colorId });
+    openPreview(product, {
+      initialColorId: displayColor.colorId,
+      initialImage: image,
+    });
   };
 
   const colorSwatches = isMultiColor ? (
@@ -101,6 +107,7 @@ export function ProductCard({ product }: ProductCardProps) {
     <ProductCardShell
       className="h-full cursor-pointer"
       onPointerEnter={handlePrefetchPreview}
+      onTouchStart={handlePrefetchPreview}
       onFocus={handlePrefetchPreview}
       onClick={handleOpenPreview}
       onKeyDown={(event) => {
