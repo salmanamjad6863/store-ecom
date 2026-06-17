@@ -14,11 +14,14 @@ import { Label } from "@/components/ui/label";
 import { Price } from "@/components/ui/price";
 import { Text } from "@/components/ui/text";
 import { Textarea } from "@/components/ui/textarea";
+import { CartSyncNotice } from "@/components/cart/cart-sync-notice";
 import { useAuth } from "@/hooks/use-auth";
 import { isAdminEmail } from "@/lib/auth/admin";
+import type { CartSyncResult } from "@/lib/cart/sync-cart";
 import { queryKeys } from "@/lib/queries/keys";
 import { isValidPkPhone, normalizePkPhone } from "@/lib/validation/phone";
 import { useToast } from "@/providers/toast-provider";
+import { useCartStore } from "@/stores/cart-store";
 import type { CartItem } from "@/types/cart";
 import { getCartLineKey } from "@/types/cart";
 
@@ -43,9 +46,19 @@ type CheckoutFormProps = {
   items: CartItem[];
   subtotal: number;
   onCompletingChange?: (completing: boolean) => void;
+  syncResult?: CartSyncResult | null;
+  isRevalidating?: boolean;
+  onRevalidate?: () => Promise<CartSyncResult>;
 };
 
-export function CheckoutForm({ items, subtotal, onCompletingChange }: CheckoutFormProps) {
+export function CheckoutForm({
+  items,
+  subtotal,
+  onCompletingChange,
+  syncResult = null,
+  isRevalidating = false,
+  onRevalidate,
+}: CheckoutFormProps) {
   const router = useRouter();
   const queryClient = useQueryClient();
   const { user } = useAuth();
@@ -75,6 +88,19 @@ export function CheckoutForm({ items, subtotal, onCompletingChange }: CheckoutFo
   const onSubmit = async (values: CheckoutFormValues) => {
     setSubmitError(null);
 
+    const syncResult = onRevalidate ? await onRevalidate() : { issues: [], hasBlockingIssues: false };
+    const freshItems = useCartStore.getState().items;
+
+    if (freshItems.length === 0) {
+      setSubmitError("Your cart is empty. Some items may have sold out.");
+      return;
+    }
+
+    if (syncResult.hasBlockingIssues) {
+      setSubmitError("Some items in your cart are no longer available. Please review your order.");
+      return;
+    }
+
     const customer = {
       name: values.name.trim(),
       phone: normalizePkPhone(values.phone.trim()),
@@ -90,7 +116,7 @@ export function CheckoutForm({ items, subtotal, onCompletingChange }: CheckoutFo
         method: "POST",
         headers: { "Content-Type": "application/json" },
         body: JSON.stringify({
-          items,
+          items: freshItems,
           customer,
           userId: checkoutUserId,
         }),
@@ -103,6 +129,10 @@ export function CheckoutForm({ items, subtotal, onCompletingChange }: CheckoutFo
       };
 
       if (!response.ok || !data.orderId) {
+        if (onRevalidate && response.status === 400) {
+          await onRevalidate();
+        }
+
         setSubmitError(data.error ?? "Could not place your order. Please try again.");
         return;
       }
@@ -132,11 +162,13 @@ export function CheckoutForm({ items, subtotal, onCompletingChange }: CheckoutFo
     }
   };
 
-  const isBusy = isSubmitting;
+  const isBusy = isSubmitting || isRevalidating;
+  const hasBlockingCartIssues = syncResult?.hasBlockingIssues ?? false;
 
   return (
     <form onSubmit={handleSubmit(onSubmit)} className="grid gap-6 lg:grid-cols-[1fr_320px] lg:gap-8">
       <Card className="space-y-6">
+        <CartSyncNotice result={syncResult} />
         <Text variant="h2" as="h2" className="text-xl">
           Delivery details
         </Text>
@@ -227,7 +259,12 @@ export function CheckoutForm({ items, subtotal, onCompletingChange }: CheckoutFo
           </Text>
         ) : null}
 
-        <Button type="submit" size="lg" disabled={isBusy} className="w-full">
+        <Button
+          type="submit"
+          size="lg"
+          disabled={isBusy || hasBlockingCartIssues || items.length === 0}
+          className="w-full"
+        >
           {isBusy ? "Placing order…" : "Place order"}
         </Button>
       </Card>

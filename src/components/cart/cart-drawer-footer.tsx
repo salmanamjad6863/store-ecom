@@ -1,11 +1,15 @@
 "use client";
 
+import { useState } from "react";
 import { useRouter } from "next/navigation";
 
 import { Button } from "@/components/ui/button";
 import { Price } from "@/components/ui/price";
 import { Text } from "@/components/ui/text";
+import { useRevalidateCart } from "@/hooks/use-revalidate-cart";
 import { scrollToTop } from "@/lib/utils/scroll-lock";
+import { useToast } from "@/providers/toast-provider";
+import { useCartStore } from "@/stores/cart-store";
 
 type CartDrawerFooterProps = {
   subtotal: number;
@@ -15,11 +19,33 @@ type CartDrawerFooterProps = {
 
 export function CartDrawerFooter({ subtotal, itemCount, onClose }: CartDrawerFooterProps) {
   const router = useRouter();
+  const { revalidate } = useRevalidateCart();
+  const { toast } = useToast();
+  const [isCheckingOut, setIsCheckingOut] = useState(false);
 
-  const handleCheckout = () => {
-    onClose();
-    scrollToTop();
-    router.push("/checkout");
+  const handleCheckout = async () => {
+    setIsCheckingOut(true);
+
+    try {
+      const result = await revalidate();
+      const items = useCartStore.getState().items;
+
+      if (items.length === 0) {
+        toast("Your cart is empty — items may have sold out.", "info");
+        return;
+      }
+
+      if (result.hasBlockingIssues) {
+        toast("Your cart was updated — review items before checkout.", "info");
+        return;
+      }
+
+      onClose();
+      scrollToTop();
+      router.push("/checkout");
+    } finally {
+      setIsCheckingOut(false);
+    }
   };
 
   return (
@@ -39,8 +65,14 @@ export function CartDrawerFooter({ subtotal, itemCount, onClose }: CartDrawerFoo
         </div>
       </div>
 
-      <Button type="button" size="lg" className="w-full" onClick={handleCheckout}>
-        Proceed to checkout
+      <Button
+        type="button"
+        size="lg"
+        className="w-full"
+        disabled={isCheckingOut || itemCount === 0}
+        onClick={() => void handleCheckout()}
+      >
+        {isCheckingOut ? "Checking stock…" : "Proceed to checkout"}
       </Button>
 
       <Text variant="small" as="p" className="mt-2 text-center text-muted">

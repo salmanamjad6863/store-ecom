@@ -116,7 +116,7 @@ export function syncCartItems(
         colorId: variant.colorId || item.colorId,
         variantId: variant.id,
         slug: product.slug,
-        name: product.name,
+        name: product.theme || product.name,
         modelName: variant.modelName,
         colorName,
         image: variant.images[0] ?? color?.heroImage ?? product.heroImage ?? product.images[0] ?? "",
@@ -131,7 +131,7 @@ export function syncCartItems(
     if (isProductSoldOut(product)) {
       issues.push({
         lineKey,
-        name: product.name,
+        name: product.theme || product.name,
         type: "sold_out",
         message: `${product.name} is sold out and was removed from your cart.`,
       });
@@ -147,7 +147,7 @@ export function syncCartItems(
     if (unitPrice !== item.unitPrice) {
       issues.push({
         lineKey,
-        name: product.name,
+        name: product.theme || product.name,
         type: "price_changed",
         message: `Price updated for ${product.name}.`,
       });
@@ -157,7 +157,7 @@ export function syncCartItems(
       quantity = maxQuantity;
       issues.push({
         lineKey,
-        name: product.name,
+        name: product.theme || product.name,
         type: "quantity_reduced",
         message: `Only ${maxQuantity} of ${product.name} available — quantity adjusted.`,
       });
@@ -168,7 +168,7 @@ export function syncCartItems(
       colorId,
       variantId: "",
       slug: product.slug,
-      name: product.name,
+      name: product.theme || product.name,
       colorName: color?.colorName,
       image: color?.heroImage ?? product.heroImage ?? product.images[0] ?? "",
       unitPrice,

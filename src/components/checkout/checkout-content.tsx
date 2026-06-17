@@ -7,6 +7,7 @@ import { Container } from "@/components/ui/container";
 import { Text } from "@/components/ui/text";
 import { useCart } from "@/hooks/use-cart";
 import { useCartHydrated } from "@/hooks/use-cart-hydrated";
+import { useRevalidateCart } from "@/hooks/use-revalidate-cart";
 import { useCartDrawer } from "@/providers/cart-drawer-provider";
 import { scrollToTop } from "@/lib/utils/scroll-lock";
 
@@ -16,22 +17,32 @@ export function CheckoutContent() {
   const router = useRouter();
   const hydrated = useCartHydrated();
   const { items, getSubtotal } = useCart();
+  const { revalidate, isRevalidating, lastResult } = useRevalidateCart();
   const { openCart } = useCartDrawer();
   const subtotal = getSubtotal();
   const [isCompletingCheckout, setIsCompletingCheckout] = useState(false);
+  const [initialSyncDone, setInitialSyncDone] = useState(false);
 
   useEffect(() => {
     scrollToTop();
   }, []);
 
   useEffect(() => {
-    if (!hydrated || isCompletingCheckout || items.length > 0) {
+    if (!hydrated) {
+      return;
+    }
+
+    void revalidate().finally(() => setInitialSyncDone(true));
+  }, [hydrated, revalidate]);
+
+  useEffect(() => {
+    if (!hydrated || !initialSyncDone || isCompletingCheckout || items.length > 0) {
       return;
     }
 
     openCart();
     router.replace("/shop");
-  }, [hydrated, isCompletingCheckout, items.length, openCart, router]);
+  }, [hydrated, initialSyncDone, isCompletingCheckout, items.length, openCart, router]);
 
   useEffect(() => {
     if (hydrated && items.length > 0) {
@@ -39,7 +50,7 @@ export function CheckoutContent() {
     }
   }, [hydrated, items.length]);
 
-  if (!hydrated) {
+  if (!hydrated || !initialSyncDone) {
     return null;
   }
 
@@ -62,6 +73,9 @@ export function CheckoutContent() {
         items={items}
         subtotal={subtotal}
         onCompletingChange={setIsCompletingCheckout}
+        syncResult={lastResult}
+        isRevalidating={isRevalidating}
+        onRevalidate={revalidate}
       />
     </Container>
   );

@@ -3,7 +3,7 @@
 import { Suspense } from "react";
 
 import { CartDrawer } from "@/components/cart/cart-drawer";
-import { CartPriceSync } from "@/components/cart/cart-price-sync";
+import { CartStockSync } from "@/components/cart/cart-stock-sync";
 import { CartDrawerProvider } from "@/providers/cart-drawer-provider";
 import { ModelFilterDrawerProvider } from "@/providers/model-filter-drawer-provider";
 import { ProductPreviewProvider } from "@/providers/product-preview-provider";
@@ -30,7 +30,7 @@ export function StoreLayout({ children }: StoreLayoutProps) {
             <ModelFilterDrawer />
           </Suspense>
           <CartDrawer />
-          <CartPriceSync />
+          <CartStockSync />
         </ProductPreviewProvider>
       </CartDrawerProvider>
     </ModelFilterDrawerProvider>

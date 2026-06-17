@@ -33,7 +33,7 @@ import {
   isVariantSoldOut,
   productHasVariants,
 } from "@/lib/utils/variant";
-import { addVariantToCart } from "@/stores/cart-store";
+import { addVariantToCartLive } from "@/lib/cart/add-to-cart-live";
 import { useToast } from "@/providers/toast-provider";
 import type { Product, ProductWithVariants } from "@/types/product";
 import type { PhoneModel } from "@/types/phone-model";
@@ -479,7 +479,7 @@ export function ProductQuickPreview({
     setQuantity(1);
   };
 
-  const handleAddToCart = () => {
+  const handleAddToCart = async () => {
     if (optionSoldOut) {
       return;
     }
@@ -494,12 +494,17 @@ export function ProductQuickPreview({
       return;
     }
 
-    addVariantToCart(
+    const result = await addVariantToCartLive(
       catalogProduct,
       selectedVariant ?? undefined,
       quantity,
       activeColor?.colorId,
     );
+
+    if (!result.ok) {
+      toast(result.message, "error");
+      return;
+    }
 
     const label = selectedVariant
       ? `${catalogProduct.theme} (${selectedVariant.modelName} · ${activeColor?.colorName})`
@@ -651,7 +656,8 @@ export function ProductQuickPreview({
                           <button
                             key={color.id}
                             type="button"
-                            disabled={soldOut && !isActive}
+                            aria-label={`${color.colorName}${soldOut ? " — sold out" : ""}${isActive ? " (selected)" : ""}`}
+                            aria-pressed={isActive}
                             onPointerEnter={() =>
                               preloadImage(getColorPreviewImage(color, variants))
                             }

@@ -150,13 +150,13 @@ export function OrderReceipt({
           {order.items.map((item) => (
             <li key={`${item.productId}-${item.variantId ?? item.slug}`} className="flex gap-4">
               {item.image ? (
-                <div className="relative h-16 w-16 shrink-0 overflow-hidden rounded-lg border border-muted/20">
+                <div className="relative h-[112px] w-[76px] shrink-0 overflow-hidden rounded-xl border border-muted/20 bg-white p-2 sm:h-[120px] sm:w-[84px]">
                   <Image
                     src={item.image}
                     alt={item.name}
                     fill
-                    sizes="64px"
-                    className="object-cover"
+                    sizes="84px"
+                    className="object-contain p-1"
                   />
                 </div>
               ) : null}
