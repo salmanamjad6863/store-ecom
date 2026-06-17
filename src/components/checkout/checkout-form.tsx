@@ -15,10 +15,12 @@ import { Price } from "@/components/ui/price";
 import { Text } from "@/components/ui/text";
 import { Textarea } from "@/components/ui/textarea";
 import { useAuth } from "@/hooks/use-auth";
+import { useRevalidateCart } from "@/hooks/use-revalidate-cart";
 import { isAdminEmail } from "@/lib/auth/admin";
 import { queryKeys } from "@/lib/queries/keys";
 import { isValidPkPhone, normalizePkPhone } from "@/lib/validation/phone";
 import { useToast } from "@/providers/toast-provider";
+import { useCartStore } from "@/stores/cart-store";
 import type { CartItem } from "@/types/cart";
 import { getCartLineKey } from "@/types/cart";
 
@@ -50,6 +52,7 @@ export function CheckoutForm({ items, subtotal, onCompletingChange }: CheckoutFo
   const queryClient = useQueryClient();
   const { user } = useAuth();
   const { toast } = useToast();
+  const { revalidate } = useRevalidateCart();
   const [submitError, setSubmitError] = useState<string | null>(null);
 
   const {
@@ -75,6 +78,14 @@ export function CheckoutForm({ items, subtotal, onCompletingChange }: CheckoutFo
   const onSubmit = async (values: CheckoutFormValues) => {
     setSubmitError(null);
 
+    await revalidate();
+    const freshItems = useCartStore.getState().items;
+
+    if (freshItems.length === 0) {
+      setSubmitError("Could not place your order. Please try again.");
+      return;
+    }
+
     const customer = {
       name: values.name.trim(),
       phone: normalizePkPhone(values.phone.trim()),
@@ -90,7 +101,7 @@ export function CheckoutForm({ items, subtotal, onCompletingChange }: CheckoutFo
         method: "POST",
         headers: { "Content-Type": "application/json" },
         body: JSON.stringify({
-          items,
+          items: freshItems,
           customer,
           userId: checkoutUserId,
         }),
@@ -103,7 +114,15 @@ export function CheckoutForm({ items, subtotal, onCompletingChange }: CheckoutFo
       };
 
       if (!response.ok || !data.orderId) {
-        setSubmitError(data.error ?? "Could not place your order. Please try again.");
+        if (response.status === 400) {
+          await revalidate();
+        }
+
+        setSubmitError(
+          response.status === 400
+            ? "Could not place your order. Please review your cart and try again."
+            : (data.error ?? "Could not place your order. Please try again."),
+        );
         return;
       }
 

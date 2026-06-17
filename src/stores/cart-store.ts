@@ -180,7 +180,7 @@ export function addVariantToCart(
     colorId: resolvedColorId,
     variantId: variant?.id ?? "",
     slug: product.slug,
-    name: product.name,
+    name: product.theme || product.name,
     modelName: variant?.modelName,
     colorName: color?.colorName,
     image,

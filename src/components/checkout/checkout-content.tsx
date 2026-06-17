@@ -7,6 +7,7 @@ import { Container } from "@/components/ui/container";
 import { Text } from "@/components/ui/text";
 import { useCart } from "@/hooks/use-cart";
 import { useCartHydrated } from "@/hooks/use-cart-hydrated";
+import { useRevalidateCart } from "@/hooks/use-revalidate-cart";
 import { useCartDrawer } from "@/providers/cart-drawer-provider";
 import { scrollToTop } from "@/lib/utils/scroll-lock";
 
@@ -16,6 +17,7 @@ export function CheckoutContent() {
   const router = useRouter();
   const hydrated = useCartHydrated();
   const { items, getSubtotal } = useCart();
+  const { revalidate } = useRevalidateCart();
   const { openCart } = useCartDrawer();
   const subtotal = getSubtotal();
   const [isCompletingCheckout, setIsCompletingCheckout] = useState(false);
@@ -23,6 +25,14 @@ export function CheckoutContent() {
   useEffect(() => {
     scrollToTop();
   }, []);
+
+  useEffect(() => {
+    if (!hydrated) {
+      return;
+    }
+
+    void revalidate();
+  }, [hydrated, revalidate]);
 
   useEffect(() => {
     if (!hydrated || isCompletingCheckout || items.length > 0) {

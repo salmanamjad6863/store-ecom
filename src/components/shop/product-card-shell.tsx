@@ -15,6 +15,7 @@ type ProductCardShellProps = {
   className?: string;
   onClick?: () => void;
   onPointerEnter?: () => void;
+  onTouchStart?: () => void;
   onFocus?: () => void;
   onKeyDown?: (event: React.KeyboardEvent) => void;
   role?: string;
@@ -33,6 +34,7 @@ export function ProductCardShell({
   className,
   onClick,
   onPointerEnter,
+  onTouchStart,
   onFocus,
   onKeyDown,
   role,
@@ -50,6 +52,7 @@ export function ProductCardShell({
       )}
       onClick={onClick}
       onPointerEnter={onPointerEnter}
+      onTouchStart={onTouchStart}
       onFocus={onFocus}
       onKeyDown={onKeyDown}
       role={role}

@@ -3,7 +3,7 @@
 import { useQuery } from "@tanstack/react-query";
 import Image from "next/image";
 import { X } from "lucide-react";
-import { useEffect, useMemo, useState } from "react";
+import { useEffect, useMemo, useRef, useState } from "react";
 import { createPortal } from "react-dom";
 
 import { Button } from "@/components/ui/button";
@@ -17,6 +17,7 @@ import { queryKeys } from "@/lib/queries/keys";
 import { productQueryDefaults } from "@/lib/queries/product-query-options";
 import { fetchProductWithVariantsById } from "@/lib/queries/products";
 import { cn } from "@/lib/utils/cn";
+import { preloadImage } from "@/lib/utils/preload-image";
 import { lockBodyScroll, unlockBodyScroll } from "@/lib/utils/scroll-lock";
 import {
   getColorById,
@@ -31,12 +32,13 @@ import {
   getVariantByModel,
   isVariantSoldOut,
   productHasVariants,
-  resolveModelSelection,
 } from "@/lib/utils/variant";
-import { addVariantToCart } from "@/stores/cart-store";
+import { addVariantToCartLive } from "@/lib/cart/add-to-cart-live";
 import { useToast } from "@/providers/toast-provider";
 import type { Product, ProductWithVariants } from "@/types/product";
 import type { PhoneModel } from "@/types/phone-model";
+import type { ProductColor } from "@/types/product-color";
+import type { ProductVariant } from "@/types/product-variant";
 
 function isProductWithVariants(product: Product): product is ProductWithVariants {
   return Array.isArray((product as ProductWithVariants).variants);
@@ -54,7 +56,6 @@ type ProductQuickPreviewProps = {
 
 const PANEL_ANIMATION_MS = 550;
 const OPEN_DELAY_MS = 100;
-const IMAGE_CROSSFADE_MS = 160;
 
 function getListingImage(
   product: Product,
@@ -89,7 +90,6 @@ function getInitialModelId(
 
 function PreviewProductImage({ src, alt }: { src: string; alt: string }) {
   const [shownSrc, setShownSrc] = useState(src);
-  const [visible, setVisible] = useState(true);
 
   useEffect(() => {
     if (!src || src === shownSrc) {
@@ -98,26 +98,19 @@ function PreviewProductImage({ src, alt }: { src: string; alt: string }) {
 
     let cancelled = false;
     const img = new window.Image();
+    img.decoding = "async";
     img.src = src;
 
-    const swap = () => {
-      if (cancelled || src === shownSrc) {
-        return;
-      }
-      setVisible(false);
-      window.setTimeout(() => {
-        if (cancelled) {
-          return;
-        }
+    const commit = () => {
+      if (!cancelled) {
         setShownSrc(src);
-        setVisible(true);
-      }, IMAGE_CROSSFADE_MS);
+      }
     };
 
     if (img.complete) {
-      swap();
+      commit();
     } else {
-      img.onload = swap;
+      img.onload = commit;
     }
 
     return () => {
@@ -137,14 +130,16 @@ function PreviewProductImage({ src, alt }: { src: string; alt: string }) {
         alt={alt}
         fill
         sizes="(max-width: 640px) 300px, 320px"
-        className={cn(
-          "object-contain transition-opacity duration-200 ease-out drop-shadow-[0_12px_28px_rgba(43,26,20,0.12)]",
-          visible ? "opacity-100" : "opacity-0",
-        )}
+        className="object-contain drop-shadow-[0_12px_28px_rgba(43,26,20,0.12)]"
         priority
+        unoptimized
       />
     </div>
   );
+}
+
+function getColorPreviewImage(color: ProductColor, variants: ProductVariant[]): string {
+  return getColorHeroImage(color, variants);
 }
 
 /** Rolling water surface — tiles seamlessly; body fills below the crest line. */
@@ -254,7 +249,7 @@ function ModelDropdown({
           backgroundImage: `url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='16' height='16' viewBox='0 0 24 24' fill='none' stroke='%232b1a14' stroke-width='2' stroke-linecap='round' stroke-linejoin='round'%3E%3Cpath d='m6 9 6 6 6-6'/%3E%3C/svg%3E")`,
         }}
       >
-        <option value="" disabled>
+        <option value="" disabled hidden={Boolean(selectedModelId)}>
           Choose your model
         </option>
         {models.map((model) => (
@@ -293,6 +288,9 @@ export function ProductQuickPreview({
     getInitialModelId(product, initialVariantId),
   );
   const [quantity, setQuantity] = useState(1);
+  const [hasUserChangedSelection, setHasUserChangedSelection] = useState(false);
+  const [isAdding, setIsAdding] = useState(false);
+  const isAddingRef = useRef(false);
 
   const placeholderProduct = useMemo(
     (): ProductWithVariants => ({ ...product, variants: [] }),
@@ -312,8 +310,10 @@ export function ProductQuickPreview({
 
   const catalogProduct = fullProduct ?? placeholderProduct;
   const variants = catalogProduct.variants;
-  const hasVariants = productHasVariants(catalogProduct) && variants.length > 0;
-  const optionsLoading = isFetching && productHasVariants(product) && variants.length === 0;
+  const requiresModelSelection = productHasVariants(product);
+  const hasVariants = requiresModelSelection && variants.length > 0;
+  const optionsLoading = isFetching && requiresModelSelection && variants.length === 0;
+  const modelSelected = Boolean(selectedModelId);
 
   const activeColor = useMemo(
     () => getColorById(catalogProduct, selectedColorId) ?? catalogProduct.colors[0],
@@ -335,16 +335,15 @@ export function ProductQuickPreview({
     [phoneModels, availableModelIds],
   );
 
-  const selectedVariant = useMemo(
-    () =>
-      resolveModelSelection(
-        catalogProduct,
-        colorVariants,
-        selectedModelId,
-        activeColor?.colorId,
-      )?.variant ?? null,
-    [catalogProduct, colorVariants, selectedModelId, activeColor?.colorId],
-  );
+  const selectedVariant = useMemo(() => {
+    if (!selectedModelId) {
+      return null;
+    }
+
+    return (
+      getVariantByModel(colorVariants, selectedModelId, activeColor?.colorId) ?? null
+    );
+  }, [colorVariants, selectedModelId, activeColor?.colorId]);
 
   const displayPrice = getProductDisplayPrice(catalogProduct);
 
@@ -372,18 +371,29 @@ export function ProductQuickPreview({
     return catalogProduct.heroImage ?? catalogProduct.images[0] ?? "";
   }, [selectedVariant, activeColor, variants, catalogProduct]);
 
-  const displayImage = previewImage || listingImage;
+  const displayImage = useMemo(() => {
+    const resolved = previewImage || listingImage;
+    if (initialImage && !hasUserChangedSelection) {
+      return initialImage;
+    }
+    return resolved;
+  }, [initialImage, hasUserChangedSelection, previewImage, listingImage]);
 
   useEffect(() => {
     if (!open) {
       return;
     }
 
+    preloadImage(initialImage);
+
     const color = resolvePreferredColor(product, initialColorId);
     setSelectedColorId(color.colorId);
     setSelectedModelId(getInitialModelId(product, initialVariantId));
     setQuantity(1);
-  }, [open, product, initialColorId, initialVariantId]);
+    setHasUserChangedSelection(false);
+    isAddingRef.current = false;
+    setIsAdding(false);
+  }, [open, product, initialColorId, initialVariantId, initialImage]);
 
   useEffect(() => {
     if (open) {
@@ -435,66 +445,89 @@ export function ProductQuickPreview({
       ? (getColorById(catalogProduct, cartVariant.colorId) ??
         resolvePreferredColor(catalogProduct, initialColorId))
       : resolvePreferredColor(catalogProduct, initialColorId);
-    const nextColorVariants = getVariantsForColor(catalogProduct.variants, color.colorId);
-    const selection = resolveModelSelection(
-      catalogProduct,
-      nextColorVariants,
-      cartVariant?.modelId,
-      color.colorId,
-    );
 
     setSelectedColorId(color.colorId);
-    setSelectedModelId(cartVariant?.modelId ?? selection?.modelId ?? "");
+    setSelectedModelId(cartVariant?.modelId ?? "");
     setQuantity(1);
   }, [open, catalogProduct, initialColorId, initialVariantId, optionsLoading]);
+
+  useEffect(() => {
+    if (!open || optionsLoading) {
+      return;
+    }
+
+    for (const color of catalogProduct.colors) {
+      preloadImage(getColorPreviewImage(color, variants));
+    }
+  }, [open, optionsLoading, catalogProduct.colors, variants]);
 
   useEffect(() => {
     setQuantity((current) => Math.min(Math.max(current, 1), maxQuantity));
   }, [maxQuantity, selectedVariant?.id, activeColor?.colorId]);
 
   const handleColorSelect = (colorId: string) => {
-    setSelectedColorId(colorId);
-    setQuantity(1);
-    const nextVariants = getVariantsForColor(variants, colorId);
-    const current = getVariantByModel(nextVariants, selectedModelId, colorId);
-    if (current) {
-      return;
+    const color = getColorById(catalogProduct, colorId);
+    if (color) {
+      preloadImage(getColorPreviewImage(color, variants));
     }
-    const fallback = resolveModelSelection(catalogProduct, nextVariants, undefined, colorId);
-    setSelectedModelId(fallback?.modelId ?? "");
+
+    setHasUserChangedSelection(true);
+    setSelectedColorId(colorId);
+    setSelectedModelId("");
+    setQuantity(1);
   };
 
   const handleModelSelect = (modelId: string) => {
+    setHasUserChangedSelection(true);
     setSelectedModelId(modelId);
     setQuantity(1);
   };
 
-  const handleAddToCart = () => {
-    if (optionSoldOut) {
+  const handleAddToCart = async () => {
+    if (isAddingRef.current || optionSoldOut) {
       return;
     }
 
-    if (hasVariants && !selectedVariant) {
+    if (requiresModelSelection && !modelSelected) {
       toast("Choose your iPhone model to continue", "error");
       return;
     }
 
-    addVariantToCart(
-      catalogProduct,
-      selectedVariant ?? undefined,
-      quantity,
-      activeColor?.colorId,
-    );
+    if (requiresModelSelection && !selectedVariant) {
+      toast("Choose your iPhone model to continue", "error");
+      return;
+    }
 
-    const label = selectedVariant
-      ? `${catalogProduct.theme} (${selectedVariant.modelName} · ${activeColor?.colorName})`
-      : catalogProduct.theme;
+    isAddingRef.current = true;
+    setIsAdding(true);
 
-    toast(
-      quantity > 1 ? `${quantity} × ${label} added to cart` : `${label} added to cart`,
-      "success",
-    );
-    onClose();
+    try {
+      const result = await addVariantToCartLive(
+        catalogProduct,
+        selectedVariant ?? undefined,
+        quantity,
+        activeColor?.colorId,
+        { catalog: optionsLoading ? undefined : catalogProduct },
+      );
+
+      if (!result.ok) {
+        toast(result.message, "error");
+        return;
+      }
+
+      const label = selectedVariant
+        ? `${catalogProduct.theme} (${selectedVariant.modelName} · ${activeColor?.colorName})`
+        : catalogProduct.theme;
+
+      toast(
+        quantity > 1 ? `${quantity} × ${label} added to cart` : `${label} added to cart`,
+        "success",
+      );
+      onClose();
+    } finally {
+      isAddingRef.current = false;
+      setIsAdding(false);
+    }
   };
 
   if (!present) {
@@ -502,7 +535,10 @@ export function ProductQuickPreview({
   }
 
   const isMultiColor = catalogProduct.colors.length > 1;
-  const canAddToCart = !optionSoldOut && (!hasVariants || Boolean(selectedVariant));
+  const canAddToCart =
+    !optionSoldOut &&
+    !optionsLoading &&
+    (!requiresModelSelection || (modelSelected && Boolean(selectedVariant)));
 
   const modal = (
     <div
@@ -521,14 +557,11 @@ export function ProductQuickPreview({
       />
 
       <div
-        role="dialog"
-        aria-modal="true"
-        aria-label={`Preview ${catalogProduct.theme}`}
         className={cn(
-          "absolute inset-x-0 bottom-0 z-10 flex w-full flex-col overflow-hidden bg-cream shadow-2xl will-change-transform",
-          "max-h-[min(92dvh,880px)] rounded-t-[1.75rem]",
+          "absolute inset-x-0 bottom-0 z-10 w-full will-change-transform",
+          "max-md:max-h-[min(92dvh,880px)]",
           "transition-transform max-md:duration-[550ms] max-md:ease-[cubic-bezier(0.16,1,0.3,1)]",
-          "md:relative md:inset-auto md:bottom-auto md:max-h-[min(90vh,920px)] md:rounded-[1.75rem]",
+          "md:relative md:inset-auto md:bottom-auto md:max-h-none",
           "md:w-full md:max-w-xl lg:max-w-2xl",
           "md:transition-[transform,opacity] md:duration-[550ms] md:ease-[cubic-bezier(0.16,1,0.3,1)]",
           visible
@@ -536,6 +569,17 @@ export function ProductQuickPreview({
             : "translate-y-full md:translate-y-0 md:scale-[0.97] md:opacity-0",
         )}
       >
+        <div
+          role="dialog"
+          aria-modal="true"
+          aria-label={`Preview ${catalogProduct.theme}`}
+          className={cn(
+            "relative flex h-full w-full flex-col bg-cream shadow-2xl",
+            "max-h-[min(92dvh,880px)] overflow-hidden",
+            "max-md:isolate max-md:rounded-t-[1.75rem] max-md:[transform:translateZ(0)]",
+            "md:max-h-[min(90vh,920px)] md:rounded-[1.75rem]",
+          )}
+        >
         <div
           className="absolute left-1/2 top-2.5 z-30 h-1 w-10 -translate-x-1/2 rounded-full bg-deep/15 md:hidden"
           aria-hidden
@@ -549,8 +593,8 @@ export function ProductQuickPreview({
           <X className="h-4 w-4" />
         </button>
 
-        <div className="min-h-0 flex-1 overflow-y-auto overscroll-contain">
-          <div className="relative bg-gradient-to-b from-[#f3ebe4] via-soft to-cream px-6 pb-2 pt-12 sm:px-8 sm:pt-14">
+        <div className="min-h-0 flex-1 overflow-y-auto overscroll-contain max-md:rounded-t-[1.75rem]">
+          <div className="relative overflow-hidden bg-gradient-to-b from-[#f3ebe4] via-soft to-cream px-6 pb-2 pt-12 max-md:rounded-t-[1.75rem] sm:px-8 sm:pt-14">
             <div className="pointer-events-none absolute inset-0 bg-[radial-gradient(ellipse_at_50%_0%,rgba(201,123,107,0.1)_0%,transparent_60%)]" />
             <div className="relative mx-auto aspect-[3/4] w-full max-w-[260px] sm:max-w-[300px] md:max-w-[340px]">
               <div
@@ -562,7 +606,6 @@ export function ProductQuickPreview({
                 <div className="relative z-10 h-full w-full p-5 sm:p-6">
                   {displayImage ? (
                     <PreviewProductImage
-                      key={`${product.id}:${initialColorId ?? ""}:${initialVariantId ?? ""}:${initialImage ?? ""}`}
                       src={displayImage}
                       alt={catalogProduct.theme}
                     />
@@ -626,7 +669,11 @@ export function ProductQuickPreview({
                           <button
                             key={color.id}
                             type="button"
-                            disabled={soldOut && !isActive}
+                            aria-label={`${color.colorName}${soldOut ? " — sold out" : ""}${isActive ? " (selected)" : ""}`}
+                            aria-pressed={isActive}
+                            onPointerEnter={() =>
+                              preloadImage(getColorPreviewImage(color, variants))
+                            }
                             onClick={() => handleColorSelect(color.colorId)}
                             className={cn(
                               "flex items-center gap-2 rounded-full border px-3.5 py-2 text-left transition-all",
@@ -648,20 +695,25 @@ export function ProductQuickPreview({
                   </div>
                 ) : null}
 
-                {hasVariants ? (
-                  <ModelDropdown
-                    models={availableModels}
-                    selectedModelId={selectedModelId}
-                    onSelect={handleModelSelect}
-                    disabled={optionsLoading}
-                  />
+                {requiresModelSelection ? (
+                  <div className="space-y-2">
+                    <ModelDropdown
+                      models={availableModels}
+                      selectedModelId={selectedModelId}
+                      onSelect={handleModelSelect}
+                      disabled={optionsLoading}
+                    />
+                    {!optionsLoading && !modelSelected ? (
+                      <p className="text-xs text-warm">Select your iPhone model to add to cart.</p>
+                    ) : null}
+                  </div>
                 ) : null}
 
                 <QuantitySelector
                   value={quantity}
                   onChange={setQuantity}
                   max={maxQuantity}
-                  disabled={optionSoldOut || (hasVariants && !selectedVariant)}
+                  disabled={optionSoldOut || (requiresModelSelection && !selectedVariant)}
                   showMaxHint={false}
                   label="Quantity"
                   className="[&_label]:text-[11px] [&_label]:font-medium [&_label]:uppercase [&_label]:tracking-[0.15em] [&_label]:text-warm"
@@ -675,11 +727,19 @@ export function ProductQuickPreview({
           <Button
             type="button"
             className="w-full"
-            disabled={!canAddToCart}
-            onClick={handleAddToCart}
+            disabled={!canAddToCart || isAdding}
+            aria-busy={isAdding}
+            onClick={() => void handleAddToCart()}
           >
-            {optionSoldOut ? "Sold out" : "Add to cart"}
+            {isAdding
+              ? "Adding to cart…"
+              : optionSoldOut
+                ? "Sold out"
+                : requiresModelSelection && !modelSelected
+                  ? "Select your model"
+                  : "Add to cart"}
           </Button>
+        </div>
         </div>
       </div>
     </div>

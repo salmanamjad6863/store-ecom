@@ -1,18 +1,19 @@
 "use client";
 
-import { useState } from "react";
+import { useRef, useState } from "react";
 
 import { Button } from "@/components/ui/button";
+import { addVariantToCartLive } from "@/lib/cart/add-to-cart-live";
 import { cn } from "@/lib/utils/cn";
 import { useToast } from "@/providers/toast-provider";
-import { addVariantToCart } from "@/stores/cart-store";
-import type { Product } from "@/types/product";
+import type { Product, ProductWithVariants } from "@/types/product";
 import type { ProductVariant } from "@/types/product-variant";
 import { isProductSoldOut } from "@/lib/utils/product";
 import { isVariantSoldOut, productHasVariants } from "@/lib/utils/variant";
 
 type AddToCartButtonProps = {
   product: Product;
+  catalog?: ProductWithVariants;
   variant?: ProductVariant;
   colorId?: string;
   colorName?: string;
@@ -23,6 +24,7 @@ type AddToCartButtonProps = {
 
 export function AddToCartButton({
   product,
+  catalog,
   variant,
   colorId,
   colorName,
@@ -31,6 +33,8 @@ export function AddToCartButton({
   className,
 }: AddToCartButtonProps) {
   const [added, setAdded] = useState(false);
+  const [isAdding, setIsAdding] = useState(false);
+  const isAddingRef = useRef(false);
   const { toast } = useToast();
 
   const soldOut = variant
@@ -39,25 +43,42 @@ export function AddToCartButton({
 
   const requiresVariant = productHasVariants(product);
 
-  const handleClick = () => {
-    if (soldOut || (requiresVariant && !variant)) {
+  const handleClick = async () => {
+    if (soldOut || (requiresVariant && !variant) || isAddingRef.current) {
       return;
     }
 
     const resolvedColorId = colorId ?? variant?.colorId ?? product.colors[0]?.colorId ?? "default";
-    addVariantToCart(product, variant, quantity, resolvedColorId);
-    setAdded(true);
 
-    const label =
-      variant && colorName
-        ? `${product.name} (${variant.modelName} · ${colorName})`
-        : product.name;
+    isAddingRef.current = true;
+    setIsAdding(true);
 
-    toast(
-      quantity > 1 ? `${quantity} × ${label} added to cart` : `${label} added to cart`,
-      "success",
-    );
-    window.setTimeout(() => setAdded(false), 1500);
+    try {
+      const result = await addVariantToCartLive(product, variant, quantity, resolvedColorId, {
+        catalog,
+      });
+
+      if (!result.ok) {
+        toast(result.message, "error");
+        return;
+      }
+
+      setAdded(true);
+
+      const label =
+        variant && colorName
+          ? `${product.name} (${variant.modelName} · ${colorName})`
+          : product.name;
+
+      toast(
+        quantity > 1 ? `${quantity} × ${label} added to cart` : `${label} added to cart`,
+        "success",
+      );
+      window.setTimeout(() => setAdded(false), 1500);
+    } finally {
+      isAddingRef.current = false;
+      setIsAdding(false);
+    }
   };
 
   return (
@@ -69,10 +90,19 @@ export function AddToCartButton({
         className,
         soldOut && "border-danger/40 bg-danger/10 font-semibold text-danger disabled:opacity-100",
       )}
-      disabled={soldOut || (requiresVariant && !variant)}
-      onClick={handleClick}
+      disabled={soldOut || (requiresVariant && !variant) || isAdding}
+      aria-busy={isAdding}
+      onClick={() => void handleClick()}
     >
-      {soldOut ? "Sold out" : requiresVariant && !variant ? "Select options" : added ? "Added!" : "Add to cart"}
+      {soldOut
+        ? "Sold out"
+        : isAdding
+          ? "Adding to cart…"
+          : requiresVariant && !variant
+            ? "Select options"
+            : added
+              ? "Added!"
+              : "Add to cart"}
     </Button>
   );
 }

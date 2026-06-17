@@ -3,6 +3,8 @@ import {
   doc,
   runTransaction,
   serverTimestamp,
+  type DocumentData,
+  type DocumentReference,
   type Firestore,
 } from "firebase/firestore";
 
@@ -10,6 +12,7 @@ import { COLLECTIONS, SUBCOLLECTIONS } from "@/lib/firebase/collections";
 import { generateOrderNumber } from "@/lib/utils/order-number";
 import type { CartItem } from "@/types/cart";
 import type { OrderCustomer, OrderItem } from "@/types/order";
+import type { ProductColorDocument } from "@/types/product-color";
 
 export class CreateOrderError extends Error {
   constructor(message: string) {
@@ -29,12 +32,102 @@ export type CreateOrderResult = {
   orderId: string;
 };
 
+type VariantStockLine = {
+  productId: string;
+  variantId: string;
+  colorId: string;
+  quantity: number;
+  label: string;
+  variantRef: DocumentReference;
+  productRef: DocumentReference;
+};
+
+type ProductStockLine = {
+  productId: string;
+  colorId: string;
+  quantity: number;
+  label: string;
+  productRef: DocumentReference;
+};
+
 function formatItemLabel(item: CartItem): string {
   if (item.modelName && item.colorName) {
     return `${item.name} (${item.modelName} · ${item.colorName})`;
   }
 
   return item.name;
+}
+
+function mergeVariantLines(
+  lines: VariantStockLine[],
+  item: CartItem,
+  variantRef: DocumentReference,
+  productRef: DocumentReference,
+): VariantStockLine[] {
+  const existing = lines.find(
+    (line) => line.productId === item.productId && line.variantId === item.variantId,
+  );
+
+  if (existing) {
+    existing.quantity += item.quantity;
+    return lines;
+  }
+
+  return [
+    ...lines,
+    {
+      productId: item.productId,
+      variantId: item.variantId,
+      colorId: item.colorId,
+      quantity: item.quantity,
+      label: formatItemLabel(item),
+      variantRef,
+      productRef,
+    },
+  ];
+}
+
+function mergeProductLines(
+  lines: ProductStockLine[],
+  item: CartItem,
+  productRef: DocumentReference,
+): ProductStockLine[] {
+  const existing = lines.find((line) => line.productId === item.productId);
+
+  if (existing) {
+    existing.quantity += item.quantity;
+    return lines;
+  }
+
+  return [
+    ...lines,
+    {
+      productId: item.productId,
+      colorId: item.colorId,
+      quantity: item.quantity,
+      label: formatItemLabel(item),
+      productRef,
+    },
+  ];
+}
+
+function applyColorQuantityDelta(
+  colors: ProductColorDocument[] | undefined,
+  colorId: string,
+  delta: number,
+): ProductColorDocument[] | undefined {
+  if (!colors?.length || !colorId) {
+    return colors;
+  }
+
+  return colors.map((color) =>
+    color.colorId === colorId
+      ? {
+          ...color,
+          totalQuantity: Math.max(0, (color.totalQuantity ?? 0) - delta),
+        }
+      : color,
+  );
 }
 
 export async function createOrderInFirestore(
@@ -69,125 +162,166 @@ export async function createOrderInFirestore(
   const orderRef = doc(collection(db, COLLECTIONS.orders));
 
   await runTransaction(db, async (transaction) => {
-    type StockTarget =
-      | {
-          kind: "variant";
-          item: CartItem;
-          variantRef: ReturnType<typeof doc>;
-          productRef: ReturnType<typeof doc>;
-        }
-      | {
-          kind: "product";
-          item: CartItem;
-          productRef: ReturnType<typeof doc>;
-        };
+    let variantLines: VariantStockLine[] = [];
+    let productLines: ProductStockLine[] = [];
 
-    const targets: StockTarget[] = input.items.map((item) => {
+    for (const item of input.items) {
       if (item.variantId) {
-        return {
-          kind: "variant" as const,
-          item,
-          variantRef: doc(
-            db,
-            COLLECTIONS.products,
-            item.productId,
-            SUBCOLLECTIONS.variants,
-            item.variantId,
-          ),
-          productRef: doc(db, COLLECTIONS.products, item.productId),
-        };
-      }
-
-      return {
-        kind: "product" as const,
-        item,
-        productRef: doc(db, COLLECTIONS.products, item.productId),
-      };
-    });
-
-    const snapshots = await Promise.all(
-      targets.map((target) => {
-        if (target.kind === "variant") {
-          return Promise.all([
-            transaction.get(target.variantRef),
-            transaction.get(target.productRef),
-          ]);
-        }
-
-        return Promise.all([transaction.get(target.productRef)]);
-      }),
-    );
-
-    for (let index = 0; index < targets.length; index += 1) {
-      const target = targets[index];
-      const label = formatItemLabel(target.item);
-
-      if (target.kind === "variant") {
-        const variantSnapshot = snapshots[index][0];
-        const productSnapshot = snapshots[index][1];
-
-        if (!variantSnapshot?.exists()) {
-          throw new CreateOrderError(`${label} is no longer available.`);
-        }
-
-        const stock = variantSnapshot.data().quantity ?? 0;
-
-        if (stock < target.item.quantity) {
-          throw new CreateOrderError(
-            `Only ${stock} left in stock for ${label}. Please update your cart.`,
-          );
-        }
-
-        if (!productSnapshot?.exists()) {
-          throw new CreateOrderError(`${label} is no longer available.`);
-        }
-
+        const variantRef = doc(
+          db,
+          COLLECTIONS.products,
+          item.productId,
+          SUBCOLLECTIONS.variants,
+          item.variantId,
+        );
+        const productRef = doc(db, COLLECTIONS.products, item.productId);
+        variantLines = mergeVariantLines(variantLines, item, variantRef, productRef);
         continue;
       }
 
-      const [productSnapshot] = snapshots[index];
+      const productRef = doc(db, COLLECTIONS.products, item.productId);
+      productLines = mergeProductLines(productLines, item, productRef);
+    }
 
-      if (!productSnapshot.exists()) {
-        throw new CreateOrderError(`${label} is no longer available.`);
+    const variantSnapshots = await Promise.all(
+      variantLines.map((line) =>
+        Promise.all([
+          transaction.get(line.variantRef),
+          transaction.get(line.productRef),
+        ]),
+      ),
+    );
+
+    const productSnapshots = await Promise.all(
+      productLines.map((line) => transaction.get(line.productRef)),
+    );
+
+    for (let index = 0; index < variantLines.length; index += 1) {
+      const line = variantLines[index];
+      const [variantSnapshot, productSnapshot] = variantSnapshots[index];
+
+      if (!variantSnapshot?.exists()) {
+        throw new CreateOrderError(`${line.label} is no longer available.`);
       }
 
-      const stock = productSnapshot.data().quantity ?? 0;
+      if (!productSnapshot?.exists()) {
+        throw new CreateOrderError(`${line.label} is no longer available.`);
+      }
 
-      if (stock < target.item.quantity) {
+      const stock = variantSnapshot.data().quantity ?? 0;
+
+      if (stock < line.quantity) {
         throw new CreateOrderError(
-          `Only ${stock} left in stock for ${label}. Please update your cart.`,
+          stock <= 0
+            ? `${line.label} is sold out. Please update your cart.`
+            : `Only ${stock} left in stock for ${line.label}. Please update your cart.`,
         );
       }
     }
 
-    for (let index = 0; index < targets.length; index += 1) {
-      const target = targets[index];
+    for (let index = 0; index < productLines.length; index += 1) {
+      const line = productLines[index];
+      const productSnapshot = productSnapshots[index];
 
-      if (target.kind === "variant") {
-        const variantSnapshot = snapshots[index][0];
-        const productSnapshot = snapshots[index][1];
-        const currentVariantStock = variantSnapshot?.data()?.quantity ?? 0;
-        const currentTotal = productSnapshot?.data()?.totalQuantity ?? 0;
-
-        transaction.update(target.variantRef, {
-          quantity: currentVariantStock - target.item.quantity,
-          updatedAt: serverTimestamp(),
-        });
-
-        transaction.update(target.productRef, {
-          totalQuantity: Math.max(0, currentTotal - target.item.quantity),
-          quantity: Math.max(0, currentTotal - target.item.quantity),
-          updatedAt: serverTimestamp(),
-        });
-
-        continue;
+      if (!productSnapshot.exists()) {
+        throw new CreateOrderError(`${line.label} is no longer available.`);
       }
 
-      const [productSnapshot] = snapshots[index];
-      const currentStock = productSnapshot.data()?.quantity ?? 0;
+      const stock = productSnapshot.data().quantity ?? 0;
 
-      transaction.update(target.productRef, {
-        quantity: currentStock - target.item.quantity,
+      if (stock < line.quantity) {
+        throw new CreateOrderError(
+          stock <= 0
+            ? `${line.label} is sold out. Please update your cart.`
+            : `Only ${stock} left in stock for ${line.label}. Please update your cart.`,
+        );
+      }
+    }
+
+    const productAdjustments = new Map<
+      string,
+      {
+        productRef: DocumentReference;
+        totalDelta: number;
+        colorDeltas: Map<string, number>;
+        snapshotData: DocumentData;
+      }
+    >();
+
+    const trackProductAdjustment = (
+      productId: string,
+      productRef: DocumentReference,
+      snapshotData: DocumentData,
+      colorId: string,
+      quantity: number,
+    ) => {
+      const existing = productAdjustments.get(productId);
+
+      if (existing) {
+        existing.totalDelta += quantity;
+        if (colorId) {
+          existing.colorDeltas.set(
+            colorId,
+            (existing.colorDeltas.get(colorId) ?? 0) + quantity,
+          );
+        }
+        return;
+      }
+
+      productAdjustments.set(productId, {
+        productRef,
+        totalDelta: quantity,
+        colorDeltas: colorId ? new Map([[colorId, quantity]]) : new Map(),
+        snapshotData,
+      });
+    };
+
+    for (let index = 0; index < variantLines.length; index += 1) {
+      const line = variantLines[index];
+      const [variantSnapshot, productSnapshot] = variantSnapshots[index];
+      const currentVariantStock = variantSnapshot?.data()?.quantity ?? 0;
+
+      transaction.update(line.variantRef, {
+        quantity: currentVariantStock - line.quantity,
+        updatedAt: serverTimestamp(),
+      });
+
+      trackProductAdjustment(
+        line.productId,
+        line.productRef,
+        productSnapshot?.data() ?? {},
+        line.colorId,
+        line.quantity,
+      );
+    }
+
+    for (let index = 0; index < productLines.length; index += 1) {
+      const line = productLines[index];
+      const productSnapshot = productSnapshots[index];
+
+      trackProductAdjustment(
+        line.productId,
+        line.productRef,
+        productSnapshot.data() ?? {},
+        line.colorId,
+        line.quantity,
+      );
+    }
+
+    for (const adjustment of productAdjustments.values()) {
+      const currentTotal = adjustment.snapshotData.totalQuantity ?? adjustment.snapshotData.quantity ?? 0;
+      let colors = adjustment.snapshotData.colors as ProductColorDocument[] | undefined;
+
+      for (const [colorId, delta] of adjustment.colorDeltas) {
+        colors = applyColorQuantityDelta(colors, colorId, delta);
+      }
+
+      const nextTotal = Math.max(0, currentTotal - adjustment.totalDelta);
+
+      transaction.update(adjustment.productRef, {
+        totalQuantity: nextTotal,
+        quantity: nextTotal,
+        ...(colors ? { colors } : {}),
         updatedAt: serverTimestamp(),
       });
     }
