@@ -73,10 +73,57 @@ type OrderEmailOptions = {
   showStatus?: boolean;
 };
 
+function buildPricingHtml(order: Order, code: string, locale: string): string {
+  const subtotal = formatCurrency(order.subtotal, code, locale);
+  const shipping =
+    order.shipping === 0
+      ? "Free"
+      : formatCurrency(order.shipping, code, locale);
+  const total = formatCurrency(order.total, code, locale);
+
+  return `<table role="presentation" width="100%" cellspacing="0" cellpadding="0" style="margin-bottom:28px;">
+    <tr>
+      <td style="padding-top:8px;border-top:2px solid ${BRAND.blush};"></td>
+    </tr>
+    <tr>
+      <td style="padding-top:12px;">
+        <table role="presentation" width="100%" cellspacing="0" cellpadding="0">
+          <tr>
+            <td style="padding:4px 0;font-size:14px;color:${BRAND.warm};">Subtotal</td>
+            <td align="right" style="padding:4px 0;font-size:14px;color:${BRAND.deep};">${subtotal}</td>
+          </tr>
+          <tr>
+            <td style="padding:4px 0;font-size:14px;color:${BRAND.warm};">Delivery</td>
+            <td align="right" style="padding:4px 0;font-size:14px;color:${order.shipping === 0 ? BRAND.rose : BRAND.deep};font-weight:${order.shipping === 0 ? "600" : "400"};">${shipping}</td>
+          </tr>
+          <tr>
+            <td style="padding:10px 0 4px;font-size:18px;font-weight:700;color:${BRAND.deep};font-family:Georgia,'Times New Roman',serif;">Total</td>
+            <td align="right" style="padding:10px 0 4px;font-size:18px;font-weight:700;color:${BRAND.deep};font-family:Georgia,'Times New Roman',serif;">${total}</td>
+          </tr>
+        </table>
+        <p style="margin:8px 0 0;font-size:12px;color:${BRAND.warm};text-align:right;">Cash on delivery</p>
+      </td>
+    </tr>
+  </table>`;
+}
+
+function buildPricingText(order: Order): string[] {
+  const { code, locale } = env.currency;
+  const shipping =
+    order.shipping === 0
+      ? "Free"
+      : formatCurrency(order.shipping, code, locale);
+
+  return [
+    `Subtotal: ${formatCurrency(order.subtotal, code, locale)}`,
+    `Delivery: ${shipping}`,
+    `Total: ${formatCurrency(order.total, code, locale)}`,
+  ];
+}
+
 function buildOrderEmailHtml(order: Order, options: OrderEmailOptions): string {
   const { code, locale } = env.currency;
   const storeName = escapeHtml(env.storeName);
-  const total = formatCurrency(order.total, code, locale);
   const trackUrl = `${serverEnv.appUrl}/track-order?orderId=${encodeURIComponent(order.id)}`;
   const customerName = escapeHtml(order.customer.name);
   const headline = escapeHtml(options.headline);
@@ -130,17 +177,7 @@ function buildOrderEmailHtml(order: Order, options: OrderEmailOptions): string {
                   <tbody>${buildItemsHtml(order)}</tbody>
                 </table>
 
-                <table role="presentation" width="100%" cellspacing="0" cellpadding="0" style="margin-bottom:28px;">
-                  <tr>
-                    <td style="padding-top:8px;border-top:2px solid ${BRAND.blush};"></td>
-                  </tr>
-                  <tr>
-                    <td align="right" style="padding-top:12px;">
-                      <p style="margin:0;font-size:18px;font-weight:700;color:${BRAND.deep};font-family:Georgia,'Times New Roman',serif;">Total: ${total}</p>
-                      <p style="margin:6px 0 0;font-size:12px;color:${BRAND.warm};">Cash on delivery</p>
-                    </td>
-                  </tr>
-                </table>
+                ${buildPricingHtml(order, code, locale)}
 
                 <p style="margin:0 0 10px;font-size:12px;letter-spacing:0.14em;text-transform:uppercase;color:${BRAND.warm};">Delivery</p>
                 <p style="margin:0 0 28px;font-size:14px;line-height:1.7;color:${BRAND.deep};">
@@ -216,9 +253,9 @@ export async function sendOrderConfirmationEmail(order: Order): Promise<void> {
     "Items:",
     ...buildItemsText(order),
     "",
-    `Total: ${formatCurrency(order.total, env.currency.code, env.currency.locale)}`,
+    ...buildPricingText(order),
     "",
-    "Delivery:",
+    "Delivery address:",
     order.customer.name,
     order.customer.addressLine1,
     `${order.customer.city}${order.customer.postalCode ? `, ${order.customer.postalCode}` : ""}`,
@@ -267,7 +304,7 @@ export async function sendOrderAcceptedEmail(order: Order): Promise<void> {
     "Items:",
     ...buildItemsText(order),
     "",
-    `Total: ${formatCurrency(order.total, env.currency.code, env.currency.locale)}`,
+    ...buildPricingText(order),
     "",
     `Track: ${serverEnv.appUrl}/track-order?orderId=${encodeURIComponent(order.id)}`,
   ].join("\n");

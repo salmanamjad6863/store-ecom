@@ -9,6 +9,7 @@ import { Text } from "@/components/ui/text";
 import type { Order } from "@/types/order";
 import type { PublicOrder } from "@/types/public-order";
 
+import { OrderPricingSummary } from "./order-pricing-summary";
 import { OrderStatusTimeline } from "./order-status-timeline";
 
 export type OrderReceiptData = {
@@ -24,6 +25,8 @@ export type OrderReceiptData = {
     city: string;
     postalCode?: string;
   };
+  subtotal: number;
+  shipping: number;
   total: number;
 };
 
@@ -41,6 +44,8 @@ export function orderToReceiptData(order: Order): OrderReceiptData {
     status: order.status,
     items: order.items,
     customer: order.customer,
+    subtotal: order.subtotal,
+    shipping: order.shipping,
     total: order.total,
   };
 }
@@ -52,6 +57,8 @@ export function publicOrderToReceiptData(order: PublicOrder): OrderReceiptData {
     status: order.status,
     items: order.items,
     customer: order.customer,
+    subtotal: order.subtotal,
+    shipping: order.shipping,
     total: order.total,
   };
 }
@@ -180,12 +187,12 @@ export function OrderReceipt({
           ))}
         </ul>
 
-        <div className="flex items-center justify-between border-t border-muted/20 pt-4">
-          <Text variant="h2" as="span" className="text-lg">
-            Total
-          </Text>
-          <Price amount={order.total} className="text-lg" />
-        </div>
+        <OrderPricingSummary
+          subtotal={order.subtotal}
+          shipping={order.shipping}
+          total={order.total}
+          className="border-t border-muted/20 pt-4"
+        />
       </Card>
 
       <div className="flex flex-col gap-3 sm:flex-row sm:justify-center">

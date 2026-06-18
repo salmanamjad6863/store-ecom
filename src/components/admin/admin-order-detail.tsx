@@ -4,6 +4,7 @@ import Image from "next/image";
 import Link from "next/link";
 import { useEffect, useState } from "react";
 
+import { OrderPricingSummary } from "@/components/orders/order-pricing-summary";
 import { OrderStatusTimeline } from "@/components/orders/order-status-timeline";
 import { Button } from "@/components/ui/button";
 import { Card } from "@/components/ui/card";
@@ -14,8 +15,8 @@ import { Text } from "@/components/ui/text";
 import { useAdminOrder, useOrderStatusMutation } from "@/hooks/use-admin-orders";
 import type { OrderStatus } from "@/types/order";
 
-import { OrderStatusSelect } from "./order-status-select";
 import { OrderDeliveryLabelButton } from "./order-delivery-label-button";
+import { OrderStatusSelect } from "./order-status-select";
 
 type AdminOrderDetailProps = {
   orderId: string;
@@ -191,12 +192,13 @@ export function AdminOrderDetail({ orderId }: AdminOrderDetailProps) {
             </li>
           ))}
         </ul>
-        <div className="flex justify-between border-t border-muted/20 pt-4">
-          <Text variant="h2" as="span">
-            Total
-          </Text>
-          <Price amount={order.total} className="text-lg" />
-        </div>
+        <OrderPricingSummary
+          subtotal={order.subtotal}
+          shipping={order.shipping}
+          total={order.total}
+          totalLabel="Total"
+          className="border-t border-muted/20 pt-4"
+        />
       </Card>
     </div>
   );

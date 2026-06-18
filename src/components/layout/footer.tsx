@@ -70,7 +70,7 @@ export function Footer() {
           <p className="text-[11px] tracking-wide text-cream/25">
             © {year} {env.storeName}. All rights reserved.
           </p>
-          <p className="text-[11px] tracking-wide text-cream/25">Made with ✦ for her.</p>
+          <p className="text-[11px] tracking-wide text-cream/25">Made for her.</p>
         </div>
       </div>
     </footer>
