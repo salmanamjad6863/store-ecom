@@ -32,9 +32,10 @@ type OrdersTableProps = {
   orders: Order[];
   isLoading: boolean;
   isError: boolean;
+  hasFilters?: boolean;
 };
 
-export function OrdersTable({ orders, isLoading, isError }: OrdersTableProps) {
+export function OrdersTable({ orders, isLoading, isError, hasFilters = false }: OrdersTableProps) {
   if (isLoading) {
     return (
       <div className="flex justify-center py-12">
@@ -55,8 +56,12 @@ export function OrdersTable({ orders, isLoading, isError }: OrdersTableProps) {
   if (!orders.length) {
     return (
       <EmptyState
-        title="No orders yet"
-        description="Orders will appear here when customers complete checkout."
+        title={hasFilters ? "No matching orders" : "No orders yet"}
+        description={
+          hasFilters
+            ? "Try a different period, status, or search term."
+            : "Orders will appear here when customers complete checkout."
+        }
       />
     );
   }
