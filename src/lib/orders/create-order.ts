@@ -9,6 +9,7 @@ import {
 } from "firebase/firestore";
 
 import { COLLECTIONS, SUBCOLLECTIONS } from "@/lib/firebase/collections";
+import { calculateOrderTotal, calculateShipping } from "@/lib/orders/shipping";
 import { generateOrderNumber } from "@/lib/utils/order-number";
 import type { CartItem } from "@/types/cart";
 import type { OrderCustomer, OrderItem } from "@/types/order";
@@ -143,8 +144,8 @@ export async function createOrderInFirestore(
     (total, item) => total + item.unitPrice * item.quantity,
     0,
   );
-  const shipping = 0;
-  const total = subtotal + shipping;
+  const shipping = calculateShipping(subtotal);
+  const total = calculateOrderTotal(subtotal);
 
   const orderItems: OrderItem[] = input.items.map((item) => ({
     productId: item.productId,

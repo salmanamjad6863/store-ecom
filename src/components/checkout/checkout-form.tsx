@@ -14,9 +14,11 @@ import { Label } from "@/components/ui/label";
 import { Price } from "@/components/ui/price";
 import { Text } from "@/components/ui/text";
 import { Textarea } from "@/components/ui/textarea";
+import { OrderPricingSummary } from "@/components/orders/order-pricing-summary";
 import { useAuth } from "@/hooks/use-auth";
 import { useRevalidateCart } from "@/hooks/use-revalidate-cart";
 import { isAdminEmail } from "@/lib/auth/admin";
+import { getOrderPricing } from "@/lib/orders/shipping";
 import { queryKeys } from "@/lib/queries/keys";
 import { isValidPkPhone, normalizePkPhone } from "@/lib/validation/phone";
 import { useToast } from "@/providers/toast-provider";
@@ -74,6 +76,8 @@ export function CheckoutForm({ items, subtotal, onCompletingChange }: CheckoutFo
 
   const checkoutUserId =
     user?.uid && !isAdminEmail(user.email) ? user.uid : undefined;
+
+  const pricing = getOrderPricing(subtotal);
 
   const onSubmit = async (values: CheckoutFormValues) => {
     setSubmitError(null);
@@ -235,8 +239,8 @@ export function CheckoutForm({ items, subtotal, onCompletingChange }: CheckoutFo
             Cash on Delivery (COD)
           </Text>
           <Text variant="small" as="p" className="mt-2 text-muted">
-            Pay with cash when your order is delivered. Please keep your phone reachable for
-            delivery confirmation.
+            Pay with cash when your order is delivered — items plus delivery (free on orders Rs.
+            5,000+). Please keep your phone reachable for delivery confirmation.
           </Text>
         </div>
 
@@ -272,12 +276,11 @@ export function CheckoutForm({ items, subtotal, onCompletingChange }: CheckoutFo
             </li>
           ))}
         </ul>
-        <div className="flex items-center justify-between">
-          <Text variant="h2" as="span" className="text-lg">
-            Total (COD)
-          </Text>
-          <Price amount={subtotal} className="text-lg" />
-        </div>
+        <OrderPricingSummary
+          subtotal={pricing.subtotal}
+          shipping={pricing.shipping}
+          total={pricing.total}
+        />
       </Card>
     </form>
   );

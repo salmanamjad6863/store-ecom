@@ -1,10 +1,10 @@
 import {
   collection,
+  deleteDoc,
   doc,
   getDoc,
   getDocs,
   query,
-  serverTimestamp,
   setDoc,
   updateDoc,
   where,
@@ -75,25 +75,31 @@ export async function fetchPhoneModelById(id: string): Promise<PhoneModel | null
 export async function seedDefaultPhoneModels(): Promise<number> {
   const db = getClientFirestore();
   const existing = await getDocs(collection(db, COLLECTIONS.phoneModels));
-
-  if (!existing.empty) {
-    return 0;
-  }
+  const existingIds = new Set(existing.docs.map((modelDoc) => modelDoc.id));
 
   const batch = writeBatch(db);
+  let added = 0;
 
   for (const model of DEFAULT_PHONE_MODELS) {
     const id = slugToModelId(model.slug);
+    if (existingIds.has(id)) {
+      continue;
+    }
+
     batch.set(doc(db, COLLECTIONS.phoneModels, id), {
       name: model.name,
       slug: model.slug,
       sortOrder: model.sortOrder,
       active: model.active,
     } satisfies PhoneModelDocument);
+    added++;
   }
 
-  await batch.commit();
-  return DEFAULT_PHONE_MODELS.length;
+  if (added > 0) {
+    await batch.commit();
+  }
+
+  return added;
 }
 
 export async function createPhoneModel(input: PhoneModelInput): Promise<string> {
@@ -107,9 +113,35 @@ export async function createPhoneModel(input: PhoneModelInput): Promise<string> 
   return id;
 }
 
+export async function createPhoneModelsBatch(inputs: PhoneModelInput[]): Promise<string[]> {
+  if (inputs.length === 0) {
+    return [];
+  }
+
+  const db = getClientFirestore();
+  const batch = writeBatch(db);
+  const ids: string[] = [];
+
+  for (const input of inputs) {
+    const id = slugToModelId(input.slug);
+    batch.set(doc(db, COLLECTIONS.phoneModels, id), {
+      ...input,
+    } satisfies PhoneModelDocument);
+    ids.push(id);
+  }
+
+  await batch.commit();
+  return ids;
+}
+
 export async function updatePhoneModel(id: string, input: PhoneModelInput): Promise<void> {
   const db = getClientFirestore();
   await updateDoc(doc(db, COLLECTIONS.phoneModels, id), input);
+}
+
+export async function deletePhoneModel(id: string): Promise<void> {
+  const db = getClientFirestore();
+  await deleteDoc(doc(db, COLLECTIONS.phoneModels, id));
 }
 
 export async function fetchPhoneModelBySlug(slug: string): Promise<PhoneModel | null> {

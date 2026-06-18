@@ -12,7 +12,7 @@ const triggers = [
   "Cash on delivery — impulse purchases without card friction",
   "Peer reviews and unboxings shown prominently for social proof",
   "Price anchoring — show original price crossed out, always",
-  "Free delivery threshold (Rs. 2,000) pushes cart value higher",
+  "Free delivery threshold (Rs. 5,000) pushes cart value higher",
 ] as const;
 
 export function ImpulseSection() {

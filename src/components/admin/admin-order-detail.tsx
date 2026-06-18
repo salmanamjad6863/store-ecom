@@ -1,21 +1,23 @@
 "use client";
 
-import Image from "next/image";
+import { useQuery } from "@tanstack/react-query";
 import Link from "next/link";
-import { useEffect, useState } from "react";
+import { useEffect, useMemo, useState } from "react";
 
+import { OrderItemRow } from "@/components/orders/order-item-row";
+import { OrderPricingSummary } from "@/components/orders/order-pricing-summary";
 import { OrderStatusTimeline } from "@/components/orders/order-status-timeline";
 import { Button } from "@/components/ui/button";
 import { Card } from "@/components/ui/card";
 import { EmptyState } from "@/components/ui/empty-state";
-import { Price } from "@/components/ui/price";
 import { Spinner } from "@/components/ui/spinner";
 import { Text } from "@/components/ui/text";
 import { useAdminOrder, useOrderStatusMutation } from "@/hooks/use-admin-orders";
+import { fetchProductsByIds } from "@/lib/queries/products";
 import type { OrderStatus } from "@/types/order";
 
-import { OrderStatusSelect } from "./order-status-select";
 import { OrderDeliveryLabelButton } from "./order-delivery-label-button";
+import { OrderStatusSelect } from "./order-status-select";
 
 type AdminOrderDetailProps = {
   orderId: string;
@@ -33,6 +35,22 @@ export function AdminOrderDetail({ orderId }: AdminOrderDetailProps) {
       setStatus(order.status);
     }
   }, [order]);
+
+  const productIds = useMemo(
+    () => [...new Set(order?.items.map((item) => item.productId) ?? [])],
+    [order?.items],
+  );
+
+  const { data: catalogProducts = [] } = useQuery({
+    queryKey: ["products", "order-detail", productIds],
+    queryFn: () => fetchProductsByIds(productIds),
+    enabled: Boolean(order) && productIds.length > 0,
+  });
+
+  const productsById = useMemo(
+    () => new Map(catalogProducts.map((product) => [product.id, product])),
+    [catalogProducts],
+  );
 
   if (isLoading) {
     return (
@@ -157,46 +175,20 @@ export function AdminOrderDetail({ orderId }: AdminOrderDetailProps) {
         </Text>
         <ul className="divide-y divide-muted/20">
           {order.items.map((item) => (
-            <li
+            <OrderItemRow
               key={`${item.productId}-${item.variantId ?? item.slug}`}
-              className="flex gap-4 py-4 first:pt-0 last:pb-0"
-            >
-              {item.image ? (
-                <div className="relative h-16 w-16 shrink-0 overflow-hidden rounded-lg border border-muted/20">
-                  <Image
-                    src={item.image}
-                    alt={item.name}
-                    fill
-                    sizes="64px"
-                    className="object-cover"
-                  />
-                </div>
-              ) : null}
-              <div className="flex flex-1 justify-between gap-4">
-                <div>
-                  <Text variant="body" as="p" className="font-medium">
-                    {item.name}
-                  </Text>
-                  {item.modelName && item.colorName ? (
-                    <Text variant="small" as="p" className="text-muted">
-                      {item.modelName} · {item.colorName}
-                    </Text>
-                  ) : null}
-                  <Text variant="small" as="p">
-                    Qty {item.quantity}
-                  </Text>
-                </div>
-                <Price amount={item.unitPrice * item.quantity} />
-              </div>
-            </li>
+              item={item}
+              product={productsById.get(item.productId)}
+            />
           ))}
         </ul>
-        <div className="flex justify-between border-t border-muted/20 pt-4">
-          <Text variant="h2" as="span">
-            Total
-          </Text>
-          <Price amount={order.total} className="text-lg" />
-        </div>
+        <OrderPricingSummary
+          subtotal={order.subtotal}
+          shipping={order.shipping}
+          total={order.total}
+          totalLabel="Total"
+          className="border-t border-muted/20 pt-4"
+        />
       </Card>
     </div>
   );

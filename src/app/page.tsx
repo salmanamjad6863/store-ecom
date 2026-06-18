@@ -21,6 +21,7 @@ export default async function Home() {
       <AnnouncementTicker />
       <CollectionSection
         limit={collectionLimit}
+        initialProducts={products}
         skeletonCount={Math.min(collectionLimit, products.length)}
       />
       <ReviewsSection />
