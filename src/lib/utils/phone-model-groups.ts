@@ -43,11 +43,11 @@ export function groupPhoneModelsByGeneration(models: PhoneModel[]): PhoneModelGr
     }));
 }
 
-/** Short label inside a generation accordion (e.g. "17 Pro Max"). */
+/** Short label inside a generation accordion (e.g. "17 Pro Max", "17"). */
 export function getPhoneModelVariantLabel(model: PhoneModel, generation: string): string {
   const base = `iPhone ${generation}`;
   if (model.name === base) {
-    return base;
+    return generation;
   }
 
   return model.name.replace(/^iPhone\s+/i, "");

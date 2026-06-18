@@ -1,5 +1,6 @@
 import { env } from "@/lib/env";
 import { isSmtpConfigured, serverEnv } from "@/lib/env.server";
+import { resolveOrderItemDisplay } from "@/lib/orders/format-order-item-display";
 import { formatCurrency } from "@/lib/utils/format";
 import type { Order, OrderItem } from "@/types/order";
 
@@ -24,12 +25,11 @@ function escapeHtml(value: string): string {
 }
 
 function formatOrderItemTitle(item: OrderItem): string {
-  return item.name;
+  return resolveOrderItemDisplay(item).title;
 }
 
 function formatOrderItemVariant(item: OrderItem): string | null {
-  const parts = [item.colorName, item.modelName].filter(Boolean);
-  return parts.length > 0 ? parts.join(" · ") : null;
+  return resolveOrderItemDisplay(item).variantLine;
 }
 
 function buildItemsHtml(order: Order): string {

@@ -1,14 +1,13 @@
-import Image from "next/image";
 import { CheckCircle2 } from "lucide-react";
 
 import { Button } from "@/components/ui/button";
 import { Card } from "@/components/ui/card";
 import { CopyButton } from "@/components/ui/copy-button";
-import { Price } from "@/components/ui/price";
 import { Text } from "@/components/ui/text";
 import type { Order } from "@/types/order";
 import type { PublicOrder } from "@/types/public-order";
 
+import { OrderItemRow } from "./order-item-row";
 import { OrderPricingSummary } from "./order-pricing-summary";
 import { OrderStatusTimeline } from "./order-status-timeline";
 
@@ -155,35 +154,10 @@ export function OrderReceipt({
 
         <ul className="space-y-4 border-t border-muted/20 pt-4">
           {order.items.map((item) => (
-            <li key={`${item.productId}-${item.variantId ?? item.slug}`} className="flex gap-4">
-              {item.image ? (
-                <div className="relative h-[112px] w-[76px] shrink-0 overflow-hidden rounded-xl border border-muted/20 bg-white p-2 sm:h-[120px] sm:w-[84px]">
-                  <Image
-                    src={item.image}
-                    alt={item.name}
-                    fill
-                    sizes="84px"
-                    className="object-contain p-1"
-                  />
-                </div>
-              ) : null}
-              <div className="flex flex-1 justify-between gap-4">
-                <div>
-                  <Text variant="body" as="p" className="font-medium">
-                    {item.name}
-                  </Text>
-                  {item.modelName && item.colorName ? (
-                    <Text variant="small" as="p" className="text-muted">
-                      {item.modelName} · {item.colorName}
-                    </Text>
-                  ) : null}
-                  <Text variant="small" as="p">
-                    Qty {item.quantity}
-                  </Text>
-                </div>
-                <Price amount={item.unitPrice * item.quantity} />
-              </div>
-            </li>
+            <OrderItemRow
+              key={`${item.productId}-${item.variantId ?? item.slug}`}
+              item={item}
+            />
           ))}
         </ul>
 

@@ -8,6 +8,8 @@ import { useProductSkeletonCount } from "@/hooks/use-product-skeleton-count";
 import { useProducts } from "@/hooks/use-products";
 import { cn } from "@/lib/utils/cn";
 
+import type { Product } from "@/types/product";
+
 import { ProductGrid } from "../shop/product-grid";
 import { ProductGridSkeleton } from "../shop/product-grid-skeleton";
 
@@ -16,6 +18,7 @@ type CollectionSectionProps = {
   showViewAll?: boolean;
   className?: string;
   skeletonCount?: number;
+  initialProducts?: Product[];
 };
 
 export function CollectionSection({
@@ -23,15 +26,17 @@ export function CollectionSection({
   showViewAll = true,
   className,
   skeletonCount: skeletonCountHint,
+  initialProducts,
 }: CollectionSectionProps) {
   const { data: products, isPending, isError, isFetching } = useProducts();
-  const items = products?.slice(0, limit) ?? [];
+  const resolvedProducts = products ?? initialProducts;
+  const items = resolvedProducts?.slice(0, limit) ?? [];
   const skeletonCount = useProductSkeletonCount({
-    products,
+    products: resolvedProducts,
     limit,
     fallbackCount: skeletonCountHint,
   });
-  const showSkeleton = isPending && !products;
+  const showSkeleton = isPending && items.length === 0;
 
   return (
     <section className={cn("bg-soft px-4 py-14 sm:px-6 sm:py-20 lg:px-10 lg:py-24", className)}>
