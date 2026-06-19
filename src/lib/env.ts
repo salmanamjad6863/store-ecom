@@ -18,6 +18,7 @@ const publicEnvSchema = z.object({
   NEXT_PUBLIC_FIREBASE_MEASUREMENT_ID: z.string().optional(),
   NEXT_PUBLIC_ADMIN_EMAILS: z.string().min(1, "NEXT_PUBLIC_ADMIN_EMAILS is required"),
   NEXT_PUBLIC_STORE_NAME: z.string().optional(),
+  NEXT_PUBLIC_SITE_URL: z.string().url().optional(),
   NEXT_PUBLIC_CURRENCY_CODE: z.string().optional(),
   NEXT_PUBLIC_CURRENCY_LOCALE: z.string().optional(),
 });
@@ -39,6 +40,7 @@ function parsePublicEnv() {
     NEXT_PUBLIC_FIREBASE_MEASUREMENT_ID: process.env.NEXT_PUBLIC_FIREBASE_MEASUREMENT_ID,
     NEXT_PUBLIC_ADMIN_EMAILS: process.env.NEXT_PUBLIC_ADMIN_EMAILS,
     NEXT_PUBLIC_STORE_NAME: process.env.NEXT_PUBLIC_STORE_NAME,
+    NEXT_PUBLIC_SITE_URL: process.env.NEXT_PUBLIC_SITE_URL,
     NEXT_PUBLIC_CURRENCY_CODE: process.env.NEXT_PUBLIC_CURRENCY_CODE,
     NEXT_PUBLIC_CURRENCY_LOCALE: process.env.NEXT_PUBLIC_CURRENCY_LOCALE,
   });
@@ -63,6 +65,7 @@ function parsePublicEnv() {
       .map((email) => email.trim().toLowerCase())
       .filter(Boolean),
     storeName: data.NEXT_PUBLIC_STORE_NAME ?? "iBloom Elara",
+    siteUrl: data.NEXT_PUBLIC_SITE_URL ?? "https://www.ibloomelara.com",
     currency: {
       code: data.NEXT_PUBLIC_CURRENCY_CODE ?? "PKR",
       locale: data.NEXT_PUBLIC_CURRENCY_LOCALE ?? "en-PK",
