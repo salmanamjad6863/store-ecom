@@ -2,7 +2,7 @@ import type { Metadata } from "next";
 import { Cormorant_Garamond, DM_Sans, Great_Vibes, Playfair_Display } from "next/font/google";
 
 import { LayoutSwitcher } from "@/components/layout/layout-switcher";
-import { env } from "@/lib/env";
+import { STORE_SEO, buildDefaultOpenGraph, getSiteUrl } from "@/lib/seo/site";
 import { AuthProvider } from "@/providers/auth-provider";
 import { QueryProvider } from "@/providers/query-provider";
 import { ToastProvider } from "@/providers/toast-provider";
@@ -36,8 +36,22 @@ const greatVibes = Great_Vibes({
 });
 
 export const metadata: Metadata = {
-  title: env.storeName,
-  description: `${env.storeName} — shop online with cash on delivery.`,
+  metadataBase: new URL(getSiteUrl()),
+  title: {
+    default: STORE_SEO.name,
+    template: `%s | ${STORE_SEO.name}`,
+  },
+  description: STORE_SEO.defaultDescription,
+  openGraph: buildDefaultOpenGraph(STORE_SEO.name, STORE_SEO.defaultDescription),
+  twitter: {
+    card: "summary_large_image",
+    title: STORE_SEO.name,
+    description: STORE_SEO.defaultDescription,
+  },
+  robots: {
+    index: true,
+    follow: true,
+  },
 };
 
 export default function RootLayout({
