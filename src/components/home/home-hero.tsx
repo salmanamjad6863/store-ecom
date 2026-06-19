@@ -68,10 +68,11 @@ export function HomeHero({ skeletonCount: skeletonCountHint = 3 }: HomeHeroProps
             : null}
 
           {!isPending && items.length > 0
-            ? items.map((product, index) => (
+            ? items.map((item, index) => (
                 <HeroFeaturedCard
-                  key={`${product.id}-${index}`}
-                  product={product}
+                  key={`${item.product.id}-${item.colorId ?? "default"}-${index}`}
+                  product={item.product}
+                  colorId={item.colorId}
                   index={index}
                   raised={index === 1}
                 />

@@ -22,7 +22,7 @@ type CollectionSectionProps = {
 };
 
 export function CollectionSection({
-  limit = 4,
+  limit,
   showViewAll = true,
   className,
   skeletonCount: skeletonCountHint,
@@ -30,7 +30,10 @@ export function CollectionSection({
 }: CollectionSectionProps) {
   const { data: products, isPending, isError, isFetching } = useProducts();
   const resolvedProducts = products ?? initialProducts;
-  const items = resolvedProducts?.slice(0, limit) ?? [];
+  const items =
+    limit !== undefined
+      ? (resolvedProducts?.slice(0, limit) ?? [])
+      : (resolvedProducts ?? []);
   const skeletonCount = useProductSkeletonCount({
     products: resolvedProducts,
     limit,
@@ -51,7 +54,7 @@ export function CollectionSection({
             }
             lead="Each drop is a universe. Collect them all."
           />
-          {showViewAll ? (
+          {showViewAll && limit !== undefined ? (
             <Button href="/shop" variant="secondary" className="shrink-0 self-start sm:self-auto">
               View all
             </Button>

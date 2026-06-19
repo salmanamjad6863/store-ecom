@@ -1,12 +1,13 @@
 import { QueryClient, dehydrate, type DehydratedState } from "@tanstack/react-query";
 
+import type { FeaturedHeroItem } from "@/lib/featured/hero-items";
 import { deriveShopModelIds } from "@/lib/shop/catalog-derived";
 import { queryKeys } from "@/lib/queries/keys";
 import {
   PRODUCT_GC_TIME_MS,
   PRODUCT_STALE_TIME_MS,
 } from "@/lib/queries/product-query-options";
-import { reviveProducts } from "@/lib/queries/product-serialization";
+import { reviveProduct, reviveProducts } from "@/lib/queries/product-serialization";
 import type { Product } from "@/types/product";
 import type { PhoneModel } from "@/types/phone-model";
 
@@ -21,7 +22,7 @@ type BuildCatalogDehydratedStateOptions = {
   products: Product[];
   /** Full catalog for drawer metadata and unfiltered list cache. */
   catalogProducts?: Product[];
-  featuredProducts?: Product[];
+  featuredHeroItems?: FeaturedHeroItem[];
   listFilters?: CatalogListFilters;
   phoneModels?: PhoneModel[];
 };
@@ -41,7 +42,7 @@ function createSeedQueryClient(): QueryClient {
 export function buildCatalogDehydratedState({
   products,
   catalogProducts,
-  featuredProducts,
+  featuredHeroItems,
   listFilters = {},
   phoneModels,
 }: BuildCatalogDehydratedStateOptions): DehydratedState {
@@ -52,10 +53,13 @@ export function buildCatalogDehydratedState({
   queryClient.setQueryData(queryKeys.products.list(listFilters), revived);
   queryClient.setQueryData(queryKeys.products.list({}), revivedCatalog);
 
-  if (featuredProducts) {
+  if (featuredHeroItems) {
     queryClient.setQueryData(
       queryKeys.storeSettings.featuredHero,
-      reviveProducts(featuredProducts),
+      featuredHeroItems.map((item) => ({
+        ...item,
+        product: reviveProduct(item.product),
+      })),
     );
   }
 
