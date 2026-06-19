@@ -11,19 +11,27 @@ import { Text } from "@/components/ui/text";
 import { useAdminProducts } from "@/hooks/use-admin-products";
 import { useHomepageSettings, useHomepageSettingsMutations } from "@/hooks/use-store-settings";
 import { env } from "@/lib/env";
+import {
+  emptyFeaturedHeroSlots,
+  getAvailableHeroColors,
+  getDefaultHeroColorId,
+  slotsFromHomepageSettings,
+  type FeaturedHeroSlot,
+} from "@/lib/featured/hero-items";
 import { formatCurrency } from "@/lib/utils/format";
 import { getProductDisplayPrice } from "@/lib/utils/product";
-import { resolveListingDisplayColor } from "@/lib/utils/product-colors";
-import { FEATURED_HERO_PRODUCT_COUNT } from "@/types/store-settings";
+import { getColorById, resolveListingDisplayColor } from "@/lib/utils/product-colors";
 import type { Product } from "@/types/product";
 
-function getProductImage(product: Product): string {
-  const color = resolveListingDisplayColor(product);
-  return color.heroImage ?? color.images[0] ?? product.heroImage ?? product.images[0] ?? "";
-}
+const selectClassName =
+  "h-10 w-full rounded-md border border-muted/30 bg-background px-3 text-sm";
 
-function emptySlots(): string[] {
-  return Array.from({ length: FEATURED_HERO_PRODUCT_COUNT }, () => "");
+function getSlotImage(product: Product, colorId: string): string {
+  const color = colorId
+    ? getColorById(product, colorId) ?? resolveListingDisplayColor(product, colorId)
+    : resolveListingDisplayColor(product);
+
+  return color.heroImage ?? color.images[0] ?? product.heroImage ?? product.images[0] ?? "";
 }
 
 export function FeaturedProductsManager() {
@@ -31,7 +39,7 @@ export function FeaturedProductsManager() {
   const { data: settings, isLoading: settingsLoading } = useHomepageSettings();
   const { saveFeaturedMutation } = useHomepageSettingsMutations();
 
-  const [slots, setSlots] = useState<string[]>(emptySlots);
+  const [slots, setSlots] = useState<FeaturedHeroSlot[]>(emptyFeaturedHeroSlots);
   const [formError, setFormError] = useState<string | null>(null);
   const [saved, setSaved] = useState(false);
 
@@ -40,11 +48,7 @@ export function FeaturedProductsManager() {
       return;
     }
 
-    const next = emptySlots();
-    settings.featuredProductIds.forEach((id, index) => {
-      next[index] = id;
-    });
-    setSlots(next);
+    setSlots(slotsFromHomepageSettings(settings));
   }, [settings]);
 
   const productById = useMemo(
@@ -52,12 +56,26 @@ export function FeaturedProductsManager() {
     [products],
   );
 
-  const updateSlot = (index: number, productId: string) => {
+  const updateSlotProduct = (index: number, productId: string) => {
+    setSaved(false);
+    setFormError(null);
+
+    const product = productId ? productById.get(productId) : undefined;
+    const colorId = product ? getDefaultHeroColorId(product) : "";
+
+    setSlots((current) => {
+      const next = [...current];
+      next[index] = { productId, colorId };
+      return next;
+    });
+  };
+
+  const updateSlotColor = (index: number, colorId: string) => {
     setSaved(false);
     setFormError(null);
     setSlots((current) => {
       const next = [...current];
-      next[index] = productId;
+      next[index] = { ...next[index], colorId };
       return next;
     });
   };
@@ -66,10 +84,31 @@ export function FeaturedProductsManager() {
     setFormError(null);
     setSaved(false);
 
-    const hiddenSelected = slots.filter((id) => id && productById.get(id)?.hidden);
+    const hiddenSelected = slots.filter(
+      (slot) => slot.productId && productById.get(slot.productId)?.hidden,
+    );
 
     if (hiddenSelected.length > 0) {
       setFormError("Hidden products will not appear on the home page. Unhide them or pick visible products.");
+      return;
+    }
+
+    const invalidColor = slots.find((slot) => {
+      if (!slot.productId) {
+        return false;
+      }
+
+      const product = productById.get(slot.productId);
+      if (!product) {
+        return false;
+      }
+
+      const available = getAvailableHeroColors(product);
+      return available.length > 0 && !available.some((color) => color.colorId === slot.colorId);
+    });
+
+    if (invalidColor) {
+      setFormError("Pick an available color for each featured product.");
       return;
     }
 
@@ -112,8 +151,8 @@ export function FeaturedProductsManager() {
           Home featured products
         </Text>
         <Text variant="muted" as="p" className="mt-2">
-          Choose up to 3 products for the hero section on the home page. The same product can fill
-          multiple slots. Leave a slot empty to show fewer cards.
+          Choose up to 3 products for the hero section on the home page. Pick the color variant to
+          show for each design. Only in-stock colors are listed.
         </Text>
       </div>
 
@@ -126,9 +165,13 @@ export function FeaturedProductsManager() {
       ) : (
         <>
           <div className="grid gap-4 lg:grid-cols-3">
-            {slots.map((selectedId, index) => {
-              const product = selectedId ? productById.get(selectedId) : undefined;
-              const image = product ? getProductImage(product) : "";
+            {slots.map((slot, index) => {
+              const product = slot.productId ? productById.get(slot.productId) : undefined;
+              const availableColors = product ? getAvailableHeroColors(product) : [];
+              const selectedColor = product
+                ? getColorById(product, slot.colorId) ?? availableColors[0]
+                : undefined;
+              const image = product ? getSlotImage(product, slot.colorId) : "";
               const { amount } = product ? getProductDisplayPrice(product) : { amount: 0 };
 
               return (
@@ -139,7 +182,7 @@ export function FeaturedProductsManager() {
 
                   <div className="relative mx-auto aspect-[9/16] w-full max-w-[140px] overflow-hidden rounded-xl border border-muted/20 bg-soft">
                     {image ? (
-                      <Image src={image} alt="" fill sizes="140px" className="object-cover" />
+                      <Image src={image} alt="" fill sizes="140px" className="object-contain p-2" />
                     ) : (
                       <div className="flex h-full items-center justify-center text-xs text-muted">
                         No product
@@ -152,6 +195,11 @@ export function FeaturedProductsManager() {
                       <Text variant="small" as="p" className="font-medium text-deep">
                         {product.theme || product.name}
                       </Text>
+                      {selectedColor ? (
+                        <Text variant="small" as="p" className="text-muted">
+                          {selectedColor.colorName}
+                        </Text>
+                      ) : null}
                       <Text variant="small" as="p" className="text-muted">
                         {formatCurrency(amount, env.currency.code, env.currency.locale)}
                       </Text>
@@ -160,27 +208,57 @@ export function FeaturedProductsManager() {
                           Hidden from shop
                         </Text>
                       ) : null}
+                      {availableColors.length === 0 ? (
+                        <Text variant="small" as="p" className="mt-1 text-danger">
+                          No colors in stock
+                        </Text>
+                      ) : null}
                     </div>
                   ) : null}
 
-                  <div className="space-y-2">
-                    <label className="text-sm font-medium text-foreground" htmlFor={`featured-slot-${index}`}>
-                      Product
-                    </label>
-                    <select
-                      id={`featured-slot-${index}`}
-                      value={selectedId}
-                      onChange={(event) => updateSlot(index, event.target.value)}
-                      className="h-10 w-full rounded-md border border-muted/30 bg-background px-3 text-sm"
-                    >
-                      <option value="">None</option>
-                      {availableProducts.map((item) => (
-                        <option key={item.id} value={item.id}>
-                          {item.theme || item.name}
-                          {item.hidden ? " (hidden)" : ""}
-                        </option>
-                      ))}
-                    </select>
+                  <div className="space-y-3">
+                    <div className="space-y-2">
+                      <label className="text-sm font-medium text-foreground" htmlFor={`featured-slot-${index}`}>
+                        Design
+                      </label>
+                      <select
+                        id={`featured-slot-${index}`}
+                        value={slot.productId}
+                        onChange={(event) => updateSlotProduct(index, event.target.value)}
+                        className={selectClassName}
+                      >
+                        <option value="">None</option>
+                        {availableProducts.map((item) => (
+                          <option key={item.id} value={item.id}>
+                            {item.theme || item.name}
+                            {item.hidden ? " (hidden)" : ""}
+                          </option>
+                        ))}
+                      </select>
+                    </div>
+
+                    {product && availableColors.length > 0 ? (
+                      <div className="space-y-2">
+                        <label
+                          className="text-sm font-medium text-foreground"
+                          htmlFor={`featured-color-${index}`}
+                        >
+                          Color
+                        </label>
+                        <select
+                          id={`featured-color-${index}`}
+                          value={slot.colorId}
+                          onChange={(event) => updateSlotColor(index, event.target.value)}
+                          className={selectClassName}
+                        >
+                          {availableColors.map((color) => (
+                            <option key={color.colorId} value={color.colorId}>
+                              {color.colorName}
+                            </option>
+                          ))}
+                        </select>
+                      </div>
+                    ) : null}
                   </div>
                 </Card>
               );
@@ -192,12 +270,14 @@ export function FeaturedProductsManager() {
               Hero preview order
             </Text>
             <Text variant="muted" as="p" className="text-sm">
-              {slots.filter(Boolean).length > 0
+              {slots.filter((slot) => slot.productId).length > 0
                 ? slots
-                    .filter(Boolean)
-                    .map((id, index) => {
-                      const product = productById.get(id);
-                      return `${index + 1}. ${product?.theme || product?.name || "Unknown"}`;
+                    .filter((slot) => slot.productId)
+                    .map((slot, index) => {
+                      const product = productById.get(slot.productId);
+                      const color = product ? getColorById(product, slot.colorId) : undefined;
+                      const label = product?.theme || product?.name || "Unknown";
+                      return `${index + 1}. ${label}${color ? ` (${color.colorName})` : ""}`;
                     })
                     .join(" · ")
                 : "No featured products selected — the home page will show your 3 newest visible products."}

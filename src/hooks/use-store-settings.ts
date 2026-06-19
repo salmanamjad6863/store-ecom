@@ -2,9 +2,10 @@
 
 import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
 
+import type { FeaturedHeroSlot } from "@/lib/featured/hero-items";
 import { queryKeys } from "@/lib/queries/keys";
 import { productQueryDefaults } from "@/lib/queries/product-query-options";
-import { reviveProducts } from "@/lib/queries/product-serialization";
+import { reviveProduct } from "@/lib/queries/product-serialization";
 import {
   fetchFeaturedHeroProducts,
   fetchHomepageSettings,
@@ -15,7 +16,11 @@ export function useFeaturedHeroProducts() {
   return useQuery({
     queryKey: queryKeys.storeSettings.featuredHero,
     queryFn: fetchFeaturedHeroProducts,
-    select: reviveProducts,
+    select: (items) =>
+      items.map((item) => ({
+        ...item,
+        product: reviveProduct(item.product),
+      })),
     ...productQueryDefaults,
   });
 }
@@ -35,7 +40,7 @@ export function useHomepageSettingsMutations() {
   };
 
   const saveFeaturedMutation = useMutation({
-    mutationFn: (productIds: string[]) => saveHomepageFeaturedProducts(productIds),
+    mutationFn: (slots: FeaturedHeroSlot[]) => saveHomepageFeaturedProducts(slots),
     onSuccess: invalidate,
   });
 

@@ -1,5 +1,6 @@
 export type HomepageSettings = {
   featuredProductIds: string[];
+  featuredColorIds: string[];
 };
 
 export const HOMEPAGE_SETTINGS_DOC_ID = "homepage";

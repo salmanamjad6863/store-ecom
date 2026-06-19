@@ -1,3 +1,4 @@
+import type { FeaturedHeroItem } from "@/lib/featured/hero-items";
 import { fetchPhoneModelsOnServer } from "@/lib/queries/phone-models-server";
 import { fetchProductsOnServer } from "@/lib/queries/products-server";
 import {
@@ -9,7 +10,7 @@ import type { PhoneModel } from "@/types/phone-model";
 
 export type HomeCatalogData = {
   products: Product[];
-  featuredProducts: Product[];
+  featuredHeroItems: FeaturedHeroItem[];
   phoneModels: PhoneModel[];
 };
 
@@ -21,10 +22,7 @@ export async function fetchHomeCatalogData(): Promise<HomeCatalogData> {
     fetchPhoneModelsOnServer(),
   ]);
 
-  const featuredProducts = resolveFeaturedHeroProductsFromCatalog(
-    products,
-    settings.featuredProductIds,
-  );
+  const featuredHeroItems = resolveFeaturedHeroProductsFromCatalog(products, settings);
 
-  return { products, featuredProducts, phoneModels };
+  return { products, featuredHeroItems, phoneModels };
 }

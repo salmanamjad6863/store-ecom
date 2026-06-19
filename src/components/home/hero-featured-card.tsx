@@ -16,22 +16,24 @@ import type { Product } from "@/types/product";
 
 type HeroFeaturedCardProps = {
   product: Product;
+  colorId?: string;
   index: number;
   raised?: boolean;
 };
 
 function getProductImage(product: Product, colorId?: string): string {
-  const color = colorId
-    ? resolveListingDisplayColor(product, colorId)
-    : resolveListingDisplayColor(product);
+  const color = resolveListingDisplayColor(product, colorId);
   return color.heroImage ?? color.images[0] ?? product.heroImage ?? product.images[0] ?? "";
 }
 
-export function HeroFeaturedCard({ product, index, raised }: HeroFeaturedCardProps) {
+export function HeroFeaturedCard({ product, colorId, index, raised }: HeroFeaturedCardProps) {
   const queryClient = useQueryClient();
   const { openPreview } = useProductPreview();
 
-  const displayColor = useMemo(() => resolveListingDisplayColor(product), [product]);
+  const displayColor = useMemo(
+    () => resolveListingDisplayColor(product, colorId),
+    [product, colorId],
+  );
   const { amount } = getProductDisplayPrice(product);
   const image = getProductImage(product, displayColor.colorId);
   const label = product.theme || product.name;

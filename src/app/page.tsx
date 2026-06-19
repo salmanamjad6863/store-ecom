@@ -29,11 +29,10 @@ export const metadata: Metadata = {
 };
 
 export default async function Home() {
-  const { products, featuredProducts, phoneModels } = await fetchHomeCatalogData();
-  const collectionLimit = 4;
+  const { products, featuredHeroItems, phoneModels } = await fetchHomeCatalogData();
   const dehydratedState = buildCatalogDehydratedState({
     products,
-    featuredProducts,
+    featuredHeroItems,
     phoneModels,
   });
 
@@ -41,13 +40,9 @@ export default async function Home() {
     <>
       <JsonLd data={[buildOrganizationJsonLd(), buildWebSiteJsonLd()]} />
       <CatalogHydration state={dehydratedState}>
-      <HomeHero skeletonCount={featuredProducts.length} />
+      <HomeHero skeletonCount={featuredHeroItems.length} />
       <AnnouncementTicker />
-      <CollectionSection
-        limit={collectionLimit}
-        initialProducts={products}
-        skeletonCount={Math.min(collectionLimit, products.length)}
-      />
+      <CollectionSection initialProducts={products} skeletonCount={products.length} />
       <ReviewsSection />
     </CatalogHydration>
     </>
