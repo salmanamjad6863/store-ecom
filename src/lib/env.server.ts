@@ -31,7 +31,7 @@ function parseServerEnv() {
       pass,
       from: user ? `${env.storeName} <${user}>` : "",
     },
-    appUrl: data.NEXT_PUBLIC_APP_URL ?? "http://localhost:3000",
+    appUrl: data.NEXT_PUBLIC_APP_URL ?? env.siteUrl,
   };
 }
 

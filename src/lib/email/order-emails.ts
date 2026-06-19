@@ -1,6 +1,7 @@
 import { env } from "@/lib/env";
 import { isSmtpConfigured, serverEnv } from "@/lib/env.server";
 import { resolveOrderItemDisplay } from "@/lib/orders/format-order-item-display";
+import { getSiteUrl } from "@/lib/seo/site";
 import { formatCurrency } from "@/lib/utils/format";
 import type { Order, OrderItem } from "@/types/order";
 
@@ -121,10 +122,14 @@ function buildPricingText(order: Order): string[] {
   ];
 }
 
+function getTrackOrderUrl(orderId: string): string {
+  return getSiteUrl(`/track-order?orderId=${encodeURIComponent(orderId)}`);
+}
+
 function buildOrderEmailHtml(order: Order, options: OrderEmailOptions): string {
   const { code, locale } = env.currency;
   const storeName = escapeHtml(env.storeName);
-  const trackUrl = `${serverEnv.appUrl}/track-order?orderId=${encodeURIComponent(order.id)}`;
+  const trackUrl = getTrackOrderUrl(order.id);
   const customerName = escapeHtml(order.customer.name);
   const headline = escapeHtml(options.headline);
   const message = escapeHtml(options.message);
@@ -261,7 +266,7 @@ export async function sendOrderConfirmationEmail(order: Order): Promise<void> {
     `${order.customer.city}${order.customer.postalCode ? `, ${order.customer.postalCode}` : ""}`,
     order.customer.phone,
     "",
-    `Track your order: ${serverEnv.appUrl}/track-order?orderId=${encodeURIComponent(order.id)}`,
+    `Track your order: ${getTrackOrderUrl(order.id)}`,
     "",
     "Payment: Cash on delivery",
   ].join("\n");
@@ -306,7 +311,7 @@ export async function sendOrderAcceptedEmail(order: Order): Promise<void> {
     "",
     ...buildPricingText(order),
     "",
-    `Track: ${serverEnv.appUrl}/track-order?orderId=${encodeURIComponent(order.id)}`,
+    `Track: ${getTrackOrderUrl(order.id)}`,
   ].join("\n");
 
   await transporter.sendMail({
