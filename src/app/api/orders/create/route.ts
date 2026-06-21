@@ -1,7 +1,7 @@
 import { after } from "next/server";
 import { NextResponse } from "next/server";
 
-import { sendOrderConfirmationEmail } from "@/lib/email/order-emails";
+import { sendAdminNewOrderEmail, sendOrderConfirmationEmail } from "@/lib/email/order-emails";
 import { CreateOrderError, createOrderInFirestore } from "@/lib/orders/create-order";
 import { getServerFirestore } from "@/lib/firebase/server";
 import { fetchOrderByIdOnServer } from "@/lib/queries/orders-server";
@@ -32,7 +32,10 @@ export async function POST(request: Request) {
         const order = await fetchOrderByIdOnServer(result.orderId);
 
         if (order) {
-          await sendOrderConfirmationEmail(order);
+          await Promise.allSettled([
+            sendOrderConfirmationEmail(order),
+            sendAdminNewOrderEmail(order),
+          ]);
         }
       } catch (error) {
         console.error("[email] Background confirmation email failed:", error);

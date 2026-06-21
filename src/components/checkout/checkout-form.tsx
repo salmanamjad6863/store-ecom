@@ -2,7 +2,7 @@
 
 import { zodResolver } from "@hookform/resolvers/zod";
 import { useQueryClient } from "@tanstack/react-query";
-import { useState } from "react";
+import { useEffect, useRef, useState } from "react";
 import { useForm } from "react-hook-form";
 import { useRouter } from "next/navigation";
 import { z } from "zod";
@@ -13,7 +13,7 @@ import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { Text } from "@/components/ui/text";
 import { Textarea } from "@/components/ui/textarea";
-import { CheckoutOrderSummary } from "@/components/checkout/checkout-order-summary";
+import { CheckoutOrderSummary } from "./checkout-order-summary";
 import { useAuth } from "@/hooks/use-auth";
 import { useRevalidateCart } from "@/hooks/use-revalidate-cart";
 import { isAdminEmail } from "@/lib/auth/admin";
@@ -39,6 +39,91 @@ const checkoutSchema = z.object({
 
 type CheckoutFormValues = z.infer<typeof checkoutSchema>;
 
+type RegisteredField = ReturnType<ReturnType<typeof useForm<CheckoutFormValues>>["register"]>;
+
+const MANUAL_FIELD_IDS = {
+  phone: "checkout-delivery-mobile",
+  email: "checkout-delivery-contact",
+} as const;
+
+const AUTOFILL_SYNC_FIELDS: Array<keyof CheckoutFormValues> = [
+  "name",
+  "addressLine1",
+  "city",
+  "postalCode",
+];
+
+function mergeFieldHandlers(
+  registration: RegisteredField,
+  handlers: {
+    onChange?: React.ChangeEventHandler<HTMLInputElement | HTMLTextAreaElement>;
+    onInput?: React.FormEventHandler<HTMLInputElement | HTMLTextAreaElement>;
+    onBlur?: React.FocusEventHandler<HTMLInputElement | HTMLTextAreaElement>;
+    onFocus?: React.FocusEventHandler<HTMLInputElement | HTMLTextAreaElement>;
+    onMouseDown?: React.MouseEventHandler<HTMLInputElement | HTMLTextAreaElement>;
+  },
+) {
+  return {
+    ...registration,
+    onChange: (event: React.ChangeEvent<HTMLInputElement | HTMLTextAreaElement>) => {
+      registration.onChange(event);
+      handlers.onChange?.(event);
+    },
+    onBlur: (event: React.FocusEvent<HTMLInputElement | HTMLTextAreaElement>) => {
+      registration.onBlur(event);
+      handlers.onBlur?.(event);
+    },
+    ...(handlers.onInput ? { onInput: handlers.onInput } : {}),
+    ...(handlers.onFocus ? { onFocus: handlers.onFocus } : {}),
+    ...(handlers.onMouseDown ? { onMouseDown: handlers.onMouseDown } : {}),
+  };
+}
+
+function withAutofillSupport(registration: RegisteredField, autoComplete: string) {
+  return {
+    ...mergeFieldHandlers(registration, {
+      onInput: (event) => {
+        registration.onChange(event);
+      },
+      onBlur: (event) => {
+        registration.onChange(event);
+      },
+    }),
+    autoComplete,
+  };
+}
+
+function withManualEntry(registration: RegisteredField, fieldId: string) {
+  const unlockField = (element: HTMLInputElement | HTMLTextAreaElement) => {
+    element.readOnly = false;
+  };
+
+  return {
+    ...mergeFieldHandlers(registration, {
+      onMouseDown: (event) => unlockField(event.currentTarget),
+      onFocus: (event) => unlockField(event.currentTarget),
+    }),
+    id: fieldId,
+    autoComplete: "new-password",
+    "data-1p-ignore": true,
+    "data-lpignore": "true",
+    readOnly: true,
+  };
+}
+
+function PhoneEmailAutofillTrap() {
+  return (
+    <div
+      aria-hidden="true"
+      tabIndex={-1}
+      className="pointer-events-none absolute -left-[9999px] h-0 w-0 overflow-hidden opacity-0"
+    >
+      <input type="tel" name="phone" autoComplete="tel" tabIndex={-1} defaultValue="" readOnly />
+      <input type="email" name="email" autoComplete="email" tabIndex={-1} defaultValue="" readOnly />
+    </div>
+  );
+}
+
 type CheckoutFormProps = {
   onCompletingChange?: (completing: boolean) => void;
 };
@@ -50,10 +135,12 @@ export function CheckoutForm({ onCompletingChange }: CheckoutFormProps) {
   const { toast } = useToast();
   const { revalidate } = useRevalidateCart();
   const [submitError, setSubmitError] = useState<string | null>(null);
+  const formRef = useRef<HTMLFormElement>(null);
 
   const {
     register,
     handleSubmit,
+    setValue,
     formState: { errors, isSubmitting },
   } = useForm<CheckoutFormValues>({
     resolver: zodResolver(checkoutSchema),
@@ -70,6 +157,28 @@ export function CheckoutForm({ onCompletingChange }: CheckoutFormProps) {
 
   const checkoutUserId =
     user?.uid && !isAdminEmail(user.email) ? user.uid : undefined;
+
+  useEffect(() => {
+    const syncAutofilledValues = () => {
+      for (const key of AUTOFILL_SYNC_FIELDS) {
+        const element = formRef.current?.querySelector<HTMLInputElement>(`#${key}`);
+
+        if (element?.value) {
+          setValue(key, element.value, { shouldValidate: true, shouldDirty: true });
+        }
+      }
+    };
+
+    syncAutofilledValues();
+
+    const timeoutIds = [100, 300, 700].map((delay) =>
+      window.setTimeout(syncAutofilledValues, delay),
+    );
+
+    return () => {
+      timeoutIds.forEach((timeoutId) => window.clearTimeout(timeoutId));
+    };
+  }, [setValue]);
 
   const onSubmit = async (values: CheckoutFormValues) => {
     setSubmitError(null);
@@ -148,17 +257,26 @@ export function CheckoutForm({ onCompletingChange }: CheckoutFormProps) {
   };
 
   const isBusy = isSubmitting;
+  const nameField = register("name");
+  const addressField = register("addressLine1");
+  const cityField = register("city");
+  const postalField = register("postalCode");
 
   return (
-    <form onSubmit={handleSubmit(onSubmit)} className="grid gap-6 lg:grid-cols-[1fr_320px] lg:gap-8">
-      <Card className="space-y-6">
+    <form
+      ref={formRef}
+      onSubmit={handleSubmit(onSubmit)}
+      className="grid gap-6 lg:grid-cols-[1fr_320px] lg:gap-8"
+    >
+      <Card className="relative space-y-6">
+        <PhoneEmailAutofillTrap />
         <Text variant="h2" as="h2" className="text-xl">
           Delivery details
         </Text>
         <div className="grid gap-4 sm:grid-cols-2">
           <div className="space-y-2 sm:col-span-2">
             <Label htmlFor="name">Full name</Label>
-            <Input id="name" autoComplete="name" {...register("name")} />
+            <Input {...withAutofillSupport(nameField, "name")} />
             {errors.name ? (
               <Text variant="small" as="p" className="text-danger">
                 {errors.name.message}
@@ -167,13 +285,12 @@ export function CheckoutForm({ onCompletingChange }: CheckoutFormProps) {
           </div>
 
           <div className="space-y-2">
-            <Label htmlFor="phone">Phone (Pakistan)</Label>
+            <Label htmlFor={MANUAL_FIELD_IDS.phone}>Phone (Pakistan)</Label>
             <Input
-              id="phone"
               type="tel"
-              autoComplete="tel"
+              inputMode="tel"
               placeholder="03XX XXXXXXX"
-              {...register("phone")}
+              {...withManualEntry(register("phone"), MANUAL_FIELD_IDS.phone)}
             />
             {errors.phone ? (
               <Text variant="small" as="p" className="text-danger">
@@ -183,8 +300,13 @@ export function CheckoutForm({ onCompletingChange }: CheckoutFormProps) {
           </div>
 
           <div className="space-y-2">
-            <Label htmlFor="email">Email</Label>
-            <Input id="email" type="email" autoComplete="email" {...register("email")} />
+            <Label htmlFor={MANUAL_FIELD_IDS.email}>Email</Label>
+            <Input
+              type="text"
+              inputMode="email"
+              spellCheck={false}
+              {...withManualEntry(register("email"), MANUAL_FIELD_IDS.email)}
+            />
             {errors.email ? (
               <Text variant="small" as="p" className="text-danger">
                 {errors.email.message}
@@ -194,7 +316,7 @@ export function CheckoutForm({ onCompletingChange }: CheckoutFormProps) {
 
           <div className="space-y-2 sm:col-span-2">
             <Label htmlFor="addressLine1">Address</Label>
-            <Input id="addressLine1" autoComplete="street-address" {...register("addressLine1")} />
+            <Input {...withAutofillSupport(addressField, "street-address")} />
             {errors.addressLine1 ? (
               <Text variant="small" as="p" className="text-danger">
                 {errors.addressLine1.message}
@@ -204,7 +326,7 @@ export function CheckoutForm({ onCompletingChange }: CheckoutFormProps) {
 
           <div className="space-y-2">
             <Label htmlFor="city">City</Label>
-            <Input id="city" autoComplete="address-level2" {...register("city")} />
+            <Input {...withAutofillSupport(cityField, "address-level2")} />
             {errors.city ? (
               <Text variant="small" as="p" className="text-danger">
                 {errors.city.message}
@@ -214,12 +336,12 @@ export function CheckoutForm({ onCompletingChange }: CheckoutFormProps) {
 
           <div className="space-y-2">
             <Label htmlFor="postalCode">Postal code (optional)</Label>
-            <Input id="postalCode" autoComplete="postal-code" {...register("postalCode")} />
+            <Input {...withAutofillSupport(postalField, "postal-code")} />
           </div>
 
           <div className="space-y-2 sm:col-span-2">
             <Label htmlFor="notes">Order notes (optional)</Label>
-            <Textarea id="notes" rows={3} {...register("notes")} />
+            <Textarea id="notes" rows={3} autoComplete="off" {...register("notes")} />
           </div>
         </div>
 

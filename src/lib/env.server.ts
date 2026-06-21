@@ -41,3 +41,22 @@ export function isSmtpConfigured(): boolean {
   const { smtp } = serverEnv;
   return Boolean(smtp.user && smtp.pass);
 }
+
+/** Inbox for new-order alerts — separate from admin panel login allowlist. */
+export function getOrderNotificationEmails(): string[] {
+  const configured = process.env.ORDER_NOTIFICATION_EMAILS?.split(",")
+    .map((email) => email.trim().toLowerCase())
+    .filter(Boolean);
+
+  if (configured?.length) {
+    return configured;
+  }
+
+  const storeEmail = serverEnv.smtp.user.trim().toLowerCase();
+
+  if (storeEmail) {
+    return [storeEmail];
+  }
+
+  return [];
+}
