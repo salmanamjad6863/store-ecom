@@ -18,10 +18,11 @@ import { fetchProductWithVariantsById } from "@/lib/queries/products";
 import type { CartItem } from "@/types/cart";
 import type { Product } from "@/types/product";
 
-type PreviewOptions = {
+export type ProductPreviewOptions = {
   initialColorId?: string;
   initialVariantId?: string;
   initialImage?: string;
+  initialModelId?: string;
 };
 
 type PreviewState = {
@@ -29,11 +30,12 @@ type PreviewState = {
   initialColorId?: string;
   initialVariantId?: string;
   initialImage?: string;
+  initialModelId?: string;
 };
 
 type ProductPreviewContextValue = {
   isOpen: boolean;
-  openPreview: (product: Product, options?: PreviewOptions) => void;
+  openPreview: (product: Product, options?: ProductPreviewOptions) => void;
   openPreviewFromCartItem: (item: CartItem) => Promise<void>;
   closePreview: () => void;
 };
@@ -45,15 +47,19 @@ export function ProductPreviewProvider({ children }: { children: ReactNode }) {
   const [preview, setPreview] = useState<PreviewState | null>(null);
   const [isOpen, setIsOpen] = useState(false);
 
-  const openPreview = useCallback((product: Product, options?: PreviewOptions) => {
-    setPreview({
-      product,
-      initialColorId: options?.initialColorId,
-      initialVariantId: options?.initialVariantId,
-      initialImage: options?.initialImage,
-    });
-    setIsOpen(true);
-  }, []);
+  const openPreview = useCallback<ProductPreviewContextValue["openPreview"]>(
+    (product, options) => {
+      setPreview({
+        product,
+        initialColorId: options?.initialColorId,
+        initialVariantId: options?.initialVariantId,
+        initialImage: options?.initialImage,
+        initialModelId: options?.initialModelId,
+      });
+      setIsOpen(true);
+    },
+    [],
+  );
 
   const closePreview = useCallback(() => {
     setIsOpen(false);
@@ -90,7 +96,7 @@ export function ProductPreviewProvider({ children }: { children: ReactNode }) {
   );
 
   const value = useMemo(
-    () => ({
+    (): ProductPreviewContextValue => ({
       isOpen: isOpen && Boolean(preview),
       openPreview,
       openPreviewFromCartItem,
@@ -105,12 +111,13 @@ export function ProductPreviewProvider({ children }: { children: ReactNode }) {
       {preview && typeof document !== "undefined"
         ? createPortal(
             <ProductQuickPreview
-              key={`${preview.product.id}:${preview.initialColorId ?? ""}:${preview.initialVariantId ?? ""}:${preview.initialImage ?? ""}`}
+              key={`${preview.product.id}:${preview.initialColorId ?? ""}:${preview.initialVariantId ?? ""}:${preview.initialModelId ?? ""}:${preview.initialImage ?? ""}`}
               open={isOpen}
               product={preview.product}
               initialColorId={preview.initialColorId}
               initialVariantId={preview.initialVariantId}
               initialImage={preview.initialImage}
+              initialModelId={preview.initialModelId}
               onClose={closePreview}
               onExited={handlePreviewExited}
             />,
@@ -121,7 +128,7 @@ export function ProductPreviewProvider({ children }: { children: ReactNode }) {
   );
 }
 
-export function useProductPreview() {
+export function useProductPreview(): ProductPreviewContextValue {
   const context = useContext(ProductPreviewContext);
 
   if (!context) {

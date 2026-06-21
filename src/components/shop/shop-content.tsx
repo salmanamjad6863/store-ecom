@@ -82,7 +82,7 @@ function ShopContentInner({ skeletonCount: skeletonCountHint }: ShopContentInner
                 isFetching && products && "opacity-60",
               )}
             >
-              <ProductGrid products={displayedProducts} />
+              <ProductGrid products={displayedProducts} modelId={modelId} />
             </div>
           ) : null}
 

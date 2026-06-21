@@ -1,14 +1,17 @@
 "use client";
 
 import { useQueryClient } from "@tanstack/react-query";
-import Image from "next/image";
-import { useEffect, useMemo, useState } from "react";
+import { useCallback, useEffect, useMemo, useRef, useState } from "react";
 
+import { GatedProductImage } from "@/components/ui/gated-product-image";
 import { Price } from "@/components/ui/price";
+import { useInView } from "@/hooks/use-in-view";
 import { prefetchProductById } from "@/lib/queries/prefetch-product";
+import { getListingImagePreloadUrl } from "@/lib/utils/listing-image-url";
 import { preloadImage } from "@/lib/utils/preload-image";
 import {
   getColorById,
+  getColorsForModel,
   resolveListingDisplayColor,
 } from "@/lib/utils/product-colors";
 import { getProductDisplayPrice, isProductSoldOut } from "@/lib/utils/product";
@@ -22,6 +25,8 @@ import { ProductCardShell } from "./product-card-shell";
 
 type ProductCardProps = {
   product: Product;
+  modelId?: string;
+  priority?: boolean;
 };
 
 function getColorCardImage(product: Product, color: ProductColor): string {
@@ -34,123 +39,106 @@ function getColorCardImage(product: Product, color: ProductColor): string {
   );
 }
 
-function ProductCardImage({
-  productId,
-  src,
-  alt,
-  soldOut,
-}: {
-  productId: string;
-  src: string;
-  alt: string;
-  soldOut: boolean;
-}) {
-  const [shownSrc, setShownSrc] = useState(src);
-
-  useEffect(() => {
-    setShownSrc(src);
-  }, [productId]);
-
-  useEffect(() => {
-    if (!src || src === shownSrc) {
-      return;
-    }
-
-    let cancelled = false;
-    const img = new window.Image();
-    img.decoding = "async";
-    img.src = src;
-
-    const commit = () => {
-      if (!cancelled) {
-        setShownSrc(src);
-      }
-    };
-
-    if (img.complete) {
-      commit();
-    } else {
-      img.onload = commit;
-    }
-
-    return () => {
-      cancelled = true;
-      img.onload = null;
-    };
-  }, [src, shownSrc]);
-
-  if (!shownSrc) {
-    return (
-      <div className="flex h-full items-center justify-center text-xs text-muted">
-        No image
-      </div>
-    );
+function preloadListingImage(rawSrc: string) {
+  const url = getListingImagePreloadUrl(rawSrc);
+  if (url) {
+    preloadImage(url);
   }
-
-  return (
-    <Image
-      src={shownSrc}
-      alt={alt}
-      fill
-      sizes="(max-width: 640px) 50vw, (max-width: 1024px) 33vw, 25vw"
-      className={cn(
-        "object-contain object-center",
-        "[@media(hover:hover)]:transition-transform [@media(hover:hover)]:duration-500 [@media(hover:hover)]:group-hover:scale-[1.03]",
-        soldOut && "opacity-80 saturate-[0.85]",
-      )}
-      unoptimized
-    />
-  );
 }
 
-export function ProductCard({ product }: ProductCardProps) {
+export function ProductCard({ product, modelId, priority = false }: ProductCardProps) {
   const queryClient = useQueryClient();
   const { openPreview } = useProductPreview();
-  const isMultiColor = product.colors.length > 1;
+  const cardRef = useRef<HTMLDivElement>(null);
+  const inView = useInView(cardRef, { immediate: priority });
+  const shouldLoadImage = priority || inView;
+  const othersPreloadedRef = useRef(false);
 
-  const initialColor = useMemo(() => resolveListingDisplayColor(product), [product]);
+  const colors = useMemo(() => getColorsForModel(product, modelId), [product, modelId]);
+  const isMultiColor = colors.length > 1;
+
+  const initialColor = useMemo(
+    () => resolveListingDisplayColor(product, undefined, modelId),
+    [product, modelId],
+  );
 
   const [selectedColorId, setSelectedColorId] = useState(initialColor.colorId);
   const [displayColor, setDisplayColor] = useState(initialColor);
 
   useEffect(() => {
+    const next = resolveListingDisplayColor(product, undefined, modelId);
+    setSelectedColorId(next.colorId);
+    setDisplayColor(next);
+  }, [product.id, modelId]);
+
+  useEffect(() => {
+    othersPreloadedRef.current = false;
+  }, [product.id, modelId]);
+
+  useEffect(() => {
+    const inScope = colors.some((color) => color.colorId === selectedColorId);
+    if (!inScope) {
+      return;
+    }
+
     const preferred = getColorById(product, selectedColorId);
     if (preferred && (preferred.totalQuantity ?? 0) > 0) {
       setDisplayColor(preferred);
       return;
     }
-    const fallback = resolveListingDisplayColor(product, selectedColorId);
+    const fallback = resolveListingDisplayColor(product, selectedColorId, modelId);
     setDisplayColor(fallback);
     if (fallback.colorId !== selectedColorId) {
       setSelectedColorId(fallback.colorId);
     }
-  }, [product, selectedColorId]);
-
-  useEffect(() => {
-    for (const color of product.colors) {
-      preloadImage(getColorCardImage(product, color));
-    }
-  }, [product]);
+  }, [product, selectedColorId, modelId, colors]);
 
   const { amount, compareAt } = getProductDisplayPrice(product);
   const image = getColorCardImage(product, displayColor);
 
   const themeLine = displayColor.themeLine?.trim();
 
+  const preloadOtherColors = useCallback(() => {
+    if (othersPreloadedRef.current) {
+      return;
+    }
+    othersPreloadedRef.current = true;
+
+    const run = () => {
+      for (const color of colors) {
+        if (color.colorId === initialColor.colorId) {
+          continue;
+        }
+        preloadListingImage(getColorCardImage(product, color));
+      }
+    };
+
+    if (typeof requestIdleCallback !== "undefined") {
+      requestIdleCallback(run, { timeout: 2500 });
+    } else {
+      window.setTimeout(run, 400);
+    }
+  }, [colors, initialColor.colorId, product]);
+
+  const handlePrimaryReady = useCallback(() => {
+    preloadOtherColors();
+  }, [preloadOtherColors]);
+
   const handlePrefetchPreview = () => {
     void prefetchProductById(queryClient, product.id);
-    preloadImage(image);
-    for (const color of product.colors) {
-      preloadImage(getColorCardImage(product, color));
+    preloadListingImage(image);
+    for (const color of colors) {
+      preloadListingImage(getColorCardImage(product, color));
     }
   };
 
   const handleOpenPreview = () => {
-    preloadImage(image);
+    preloadListingImage(image);
     handlePrefetchPreview();
     openPreview(product, {
       initialColorId: displayColor.colorId,
       initialImage: image,
+      initialModelId: modelId,
     });
   };
 
@@ -160,7 +148,7 @@ export function ProductCard({ product }: ProductCardProps) {
       onClick={(event) => event.stopPropagation()}
       onKeyDown={(event) => event.stopPropagation()}
     >
-      {product.colors.map((color) => {
+      {colors.map((color) => {
         const isActive = color.colorId === selectedColorId;
         const colorSoldOut = (color.totalQuantity ?? 0) <= 0;
 
@@ -170,10 +158,10 @@ export function ProductCard({ product }: ProductCardProps) {
             type="button"
             title={colorSoldOut ? `${color.colorName} — sold out` : color.colorName}
             aria-label={`${color.colorName}${isActive ? " (selected)" : ""}`}
-            onPointerEnter={() => preloadImage(getColorCardImage(product, color))}
-            onTouchStart={() => preloadImage(getColorCardImage(product, color))}
+            onPointerEnter={() => preloadListingImage(getColorCardImage(product, color))}
+            onTouchStart={() => preloadListingImage(getColorCardImage(product, color))}
             onClick={() => {
-              preloadImage(getColorCardImage(product, color));
+              preloadListingImage(getColorCardImage(product, color));
               setSelectedColorId(color.colorId);
             }}
             className={cn(
@@ -193,28 +181,33 @@ export function ProductCard({ product }: ProductCardProps) {
   ) : null;
 
   return (
-    <ProductCardShell
-      className="h-full cursor-pointer"
-      onPointerEnter={handlePrefetchPreview}
-      onTouchStart={handlePrefetchPreview}
-      onFocus={handlePrefetchPreview}
-      onClick={handleOpenPreview}
-      onKeyDown={(event) => {
-        if (event.key === "Enter" || event.key === " ") {
-          event.preventDefault();
-          handleOpenPreview();
-        }
-      }}
+    <div ref={cardRef} className="h-full">
+      <ProductCardShell
+        className="h-full cursor-pointer"
+        onPointerEnter={handlePrefetchPreview}
+        onTouchStart={handlePrefetchPreview}
+        onFocus={handlePrefetchPreview}
+        onClick={handleOpenPreview}
+        onKeyDown={(event) => {
+          if (event.key === "Enter" || event.key === " ") {
+            event.preventDefault();
+            handleOpenPreview();
+          }
+        }}
         role="button"
         tabIndex={0}
         aria-label={`Preview ${product.theme}`}
         image={
           image ? (
-            <ProductCardImage
-              productId={product.id}
+            <GatedProductImage
               src={image}
               alt={product.theme}
+              sizes="(max-width: 640px) 50vw, (max-width: 1024px) 33vw, 25vw"
+              priority={priority}
+              enabled={shouldLoadImage}
               soldOut={isProductSoldOut(product)}
+              onReady={handlePrimaryReady}
+              imageClassName="[@media(hover:hover)]:transition-transform [@media(hover:hover)]:duration-500 [@media(hover:hover)]:group-hover:scale-[1.03]"
             />
           ) : (
             <div className="flex h-full items-center justify-center text-xs text-muted">
@@ -227,6 +220,7 @@ export function ProductCard({ product }: ProductCardProps) {
         title={<span className="transition-colors group-hover:text-accent">{product.theme}</span>}
         price={<Price amount={amount} compareAt={compareAt} compareFirst />}
         extra={colorSwatches}
-    />
+      />
+    </div>
   );
 }

@@ -9,6 +9,14 @@ export function getColorById(product: Product, colorId: string): ProductColor | 
   return product.colors.find((color) => color.colorId === colorId);
 }
 
+export function getColorsForModel(product: Product, modelId?: string): ProductColor[] {
+  if (!modelId) {
+    return product.colors;
+  }
+
+  return product.colors.filter((color) => color.availableModelIds?.includes(modelId));
+}
+
 export function getVariantsForColor(
   variants: ProductVariant[],
   colorId: string,
@@ -62,22 +70,25 @@ export function resolveShopDisplayColor(
 export function resolveListingDisplayColor(
   product: Product,
   preferredColorId?: string,
+  modelId?: string,
 ): ProductColor {
+  const colors = getColorsForModel(product, modelId);
+
   const tryOrder = [
     preferredColorId,
     product.shopFeaturedColorId,
-    product.colors[0]?.colorId,
+    colors[0]?.colorId,
   ].filter(Boolean) as string[];
 
   for (const colorId of tryOrder) {
     const color = getColorById(product, colorId);
-    if (color && (color.totalQuantity ?? 0) > 0) {
+    if (color && colors.some((entry) => entry.colorId === colorId) && (color.totalQuantity ?? 0) > 0) {
       return color;
     }
   }
 
-  const inStock = product.colors.find((color) => (color.totalQuantity ?? 0) > 0);
-  return inStock ?? product.colors[0];
+  const inStock = colors.find((color) => (color.totalQuantity ?? 0) > 0);
+  return inStock ?? colors[0] ?? product.colors[0];
 }
 
 /** Honors an explicit color choice (e.g. cart line) without stock-based fallback. */
