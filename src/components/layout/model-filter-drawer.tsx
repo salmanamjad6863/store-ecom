@@ -9,6 +9,7 @@ import { Text } from "@/components/ui/text";
 import { useProducts } from "@/hooks/use-products";
 import { usePhoneModels } from "@/hooks/use-phone-models";
 import { deriveShopModelIdSet } from "@/lib/shop/catalog-derived";
+import { buildShopModelHref, getActiveModelIdFromPath } from "@/lib/seo/collections";
 import {
   getPhoneModelVariantLabel,
   groupPhoneModelsByGeneration,
@@ -20,25 +21,10 @@ import { lockBodyScroll, unlockBodyScroll } from "@/lib/utils/scroll-lock";
 const PANEL_ANIMATION_MS = 550;
 const OPEN_DELAY_MS = 60;
 
-function buildShopHref(modelId?: string, theme?: string | null): string {
-  const params = new URLSearchParams();
-
-  if (modelId) {
-    params.set("model", modelId);
-  }
-
-  if (theme) {
-    params.set("theme", theme);
-  }
-
-  const query = params.toString();
-  return query ? `/shop?${query}` : "/shop";
-}
-
 export function ModelFilterDrawer() {
   const pathname = usePathname();
   const searchParams = useSearchParams();
-  const activeModelId = searchParams.get("model");
+  const activeModelId = getActiveModelIdFromPath(pathname, searchParams.get("model"));
   const activeTheme = searchParams.get("theme");
   const { isOpen, closeDrawer } = useModelFilterDrawer();
   const { data: phoneModels = [] } = usePhoneModels();
@@ -108,7 +94,7 @@ export function ModelFilterDrawer() {
     return null;
   }
 
-  const preserveTheme = pathname === "/shop" ? activeTheme : null;
+  const preserveTheme = pathname === "/shop" || pathname.endsWith("-cases") ? activeTheme : null;
 
   return (
     <div className="fixed inset-0 z-[55]" role="presentation">
@@ -153,7 +139,7 @@ export function ModelFilterDrawer() {
 
         <div className="min-h-0 flex-1 overflow-y-auto px-3 py-4 sm:px-4">
           <Link
-            href={buildShopHref(undefined, preserveTheme)}
+            href={buildShopModelHref(undefined, preserveTheme)}
             onClick={closeDrawer}
             className={cn(
               "mb-4 flex w-full items-center rounded-xl border px-4 py-3 text-sm font-medium transition-colors",
@@ -225,7 +211,7 @@ export function ModelFilterDrawer() {
                               <li key={model.id}>
                                 {hasCases ? (
                                   <Link
-                                    href={buildShopHref(model.id, preserveTheme)}
+                                    href={buildShopModelHref(model.id, preserveTheme)}
                                     onClick={closeDrawer}
                                     className={cn(
                                       "block rounded-lg px-3 py-2.5 text-sm transition-colors",

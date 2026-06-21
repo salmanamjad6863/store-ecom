@@ -12,19 +12,20 @@ import {
   buildOrganizationJsonLd,
   buildWebSiteJsonLd,
 } from "@/lib/seo/product-seo";
+import { HOME_SEO } from "@/lib/seo/shop-seo";
 import { STORE_SEO, buildDefaultOpenGraph, getSiteUrl } from "@/lib/seo/site";
 
 export const metadata: Metadata = {
   title: {
-    absolute: `${STORE_SEO.name} — Premium iPhone Cases in Pakistan`,
+    absolute: `${HOME_SEO.title} | ${STORE_SEO.name}`,
   },
-  description: STORE_SEO.defaultDescription,
+  description: HOME_SEO.description,
   alternates: {
     canonical: getSiteUrl("/"),
   },
   openGraph: buildDefaultOpenGraph(
-    `${STORE_SEO.name} — Premium iPhone Cases in Pakistan`,
-    STORE_SEO.defaultDescription,
+    `${HOME_SEO.title} | ${STORE_SEO.name}`,
+    HOME_SEO.description,
   ),
 };
 

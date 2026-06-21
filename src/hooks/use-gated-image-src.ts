@@ -6,12 +6,20 @@ export type GatedImageStatus = "loading" | "ready" | "error";
 
 type UseGatedImageSrcOptions = {
   enabled?: boolean;
+  /** Keep the previous image visible while the next src loads (smooth color swaps). */
+  keepPreviousWhileLoading?: boolean;
 };
+
+function isImageCached(src: string): boolean {
+  const probe = new window.Image();
+  probe.src = src;
+  return probe.complete && probe.naturalWidth > 0;
+}
 
 /** Preload gate — image is shown only after the browser has fully fetched/decoded `src`. */
 export function useGatedImageSrc(
   src: string | undefined,
-  { enabled = true }: UseGatedImageSrcOptions = {},
+  { enabled = true, keepPreviousWhileLoading = false }: UseGatedImageSrcOptions = {},
 ): { displaySrc: string | null; status: GatedImageStatus } {
   const [displaySrc, setDisplaySrc] = useState<string | null>(null);
   const [status, setStatus] = useState<GatedImageStatus>("loading");
@@ -19,16 +27,11 @@ export function useGatedImageSrc(
   useEffect(() => {
     if (!enabled || !src) {
       setDisplaySrc(null);
-      setStatus(src ? "loading" : "loading");
+      setStatus("loading");
       return;
     }
 
     let cancelled = false;
-    setDisplaySrc(null);
-    setStatus("loading");
-
-    const img = new window.Image();
-    img.decoding = "async";
 
     const commit = () => {
       if (!cancelled) {
@@ -39,10 +42,28 @@ export function useGatedImageSrc(
 
     const fail = () => {
       if (!cancelled) {
-        setDisplaySrc(null);
+        if (!keepPreviousWhileLoading) {
+          setDisplaySrc(null);
+        }
         setStatus("error");
       }
     };
+
+    if (isImageCached(src)) {
+      commit();
+      return () => {
+        cancelled = true;
+      };
+    }
+
+    if (!keepPreviousWhileLoading) {
+      setDisplaySrc(null);
+    }
+
+    setStatus("loading");
+
+    const img = new window.Image();
+    img.decoding = "async";
 
     img.onload = commit;
     img.onerror = fail;
@@ -57,7 +78,7 @@ export function useGatedImageSrc(
       img.onload = null;
       img.onerror = null;
     };
-  }, [src, enabled]);
+  }, [src, enabled, keepPreviousWhileLoading]);
 
   return { displaySrc, status };
 }
@@ -75,6 +96,12 @@ export function useImageLoaded(src: string | undefined): {
   const [hasError, setHasError] = useState(false);
 
   useEffect(() => {
+    if (src && isImageCached(src)) {
+      setIsLoaded(true);
+      setHasError(false);
+      return;
+    }
+
     setIsLoaded(false);
     setHasError(false);
   }, [src]);

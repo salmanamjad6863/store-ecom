@@ -17,6 +17,7 @@ import { queryKeys } from "@/lib/queries/keys";
 import { productQueryDefaults } from "@/lib/queries/product-query-options";
 import { fetchProductWithVariantsById } from "@/lib/queries/products";
 import { cn } from "@/lib/utils/cn";
+import { getListingImagePreloadUrl } from "@/lib/utils/listing-image-url";
 import { preloadImage } from "@/lib/utils/preload-image";
 import { lockBodyScroll, unlockBodyScroll } from "@/lib/utils/scroll-lock";
 import {
@@ -91,6 +92,14 @@ function getInitialModelId(
   return modelId ?? "";
 }
 
+function preloadPreviewImage(rawSrc: string | undefined | null) {
+  if (!rawSrc) {
+    return;
+  }
+
+  preloadImage(getListingImagePreloadUrl(rawSrc));
+}
+
 function PreviewProductImage({ src, alt }: { src: string; alt: string }) {
   if (!src) {
     return null;
@@ -102,6 +111,7 @@ function PreviewProductImage({ src, alt }: { src: string; alt: string }) {
       alt={alt}
       sizes="(max-width: 640px) 300px, 320px"
       priority
+      smoothSwap
       imageClassName="drop-shadow-[0_12px_28px_rgba(43,26,20,0.12)]"
     />
   );
@@ -359,7 +369,7 @@ export function ProductQuickPreview({
       return;
     }
 
-    preloadImage(initialImage);
+    preloadPreviewImage(initialImage);
 
     const color = resolvePreferredColor(product, initialColorId);
     setSelectedColorId(color.colorId);
@@ -442,7 +452,7 @@ export function ProductQuickPreview({
     }
 
     for (const color of displayColors) {
-      preloadImage(getColorPreviewImage(color, variants));
+      preloadPreviewImage(getColorPreviewImage(color, variants));
     }
   }, [open, optionsLoading, displayColors, variants]);
 
@@ -453,7 +463,7 @@ export function ProductQuickPreview({
   const handleColorSelect = (colorId: string) => {
     const color = getColorById(catalogProduct, colorId);
     if (color) {
-      preloadImage(getColorPreviewImage(color, variants));
+      preloadPreviewImage(getColorPreviewImage(color, variants));
     }
 
     setHasUserChangedSelection(true);
@@ -657,7 +667,7 @@ export function ProductQuickPreview({
                             aria-label={`${color.colorName}${soldOut ? " — sold out" : ""}${isActive ? " (selected)" : ""}`}
                             aria-pressed={isActive}
                             onPointerEnter={() =>
-                              preloadImage(getColorPreviewImage(color, variants))
+                              preloadPreviewImage(getColorPreviewImage(color, variants))
                             }
                             onClick={() => handleColorSelect(color.colorId)}
                             className={cn(

@@ -14,7 +14,7 @@ const reviews = [
     location: "Karachi, Pakistan",
   },
   {
-    stars: 4,
+    stars: 5,
     text: "Finally a brand that actually gets Pakistani girls. Not trying to copy some western brand — it feels like it was made for us.",
     author: "Fatima N.",
     location: "Islamabad, Pakistan",

@@ -5,6 +5,8 @@ import { getProductDisplayPrice, isProductSoldOut } from "@/lib/utils/product";
 import { getColorHeroImage, resolveFeaturedColor } from "@/lib/utils/product-colors";
 import type { ProductWithVariants } from "@/types/product";
 
+import { buildBreadcrumbJsonLd } from "./faq";
+import { buildProductImageAlt } from "./shop-seo";
 import {
   STORE_SEO,
   buildDefaultOpenGraph,
@@ -46,13 +48,14 @@ function getProductSeoImages(product: ProductWithVariants): string[] {
 }
 
 export function buildProductMetadata(product: ProductWithVariants): Metadata {
-  const title = `${product.theme} iPhone Case`;
+  const title = `${product.theme} iPhone Cover`;
   const description = truncateSeoDescription(
     product.description ||
-      `Shop the ${product.theme} iPhone case at ${STORE_SEO.name}. Cash on delivery available across Pakistan.`,
+      `Shop the ${product.theme} premium iPhone cover at ${STORE_SEO.name}. Cash on delivery available across Pakistan.`,
   );
   const canonicalPath = `/shop/${product.slug}`;
   const images = getProductSeoImages(product);
+  const imageAlt = buildProductImageAlt(product.theme);
 
   return {
     title,
@@ -63,7 +66,7 @@ export function buildProductMetadata(product: ProductWithVariants): Metadata {
     openGraph: {
       ...buildDefaultOpenGraph(title, description, canonicalPath),
       type: "website",
-      images: images.length > 0 ? images.map((url) => ({ url, alt: product.theme })) : undefined,
+      images: images.length > 0 ? images.map((url) => ({ url, alt: imageAlt })) : undefined,
     },
     twitter: {
       card: "summary_large_image",
@@ -80,11 +83,12 @@ export function buildProductJsonLd(product: ProductWithVariants) {
   const images = getProductSeoImages(product);
   const productUrl = getSiteUrl(`/shop/${product.slug}`);
 
-  return {
+  return [
+    {
     "@context": "https://schema.org",
     "@type": "Product",
-    name: product.theme,
-    description: product.description || `${product.theme} iPhone case`,
+    name: `${product.theme} iPhone Cover`,
+    description: product.description || `${product.theme} premium iPhone cover`,
     image: images,
     sku: product.slug,
     url: productUrl,
@@ -102,7 +106,13 @@ export function buildProductJsonLd(product: ProductWithVariants) {
         : "https://schema.org/InStock",
       itemCondition: "https://schema.org/NewCondition",
     },
-  };
+  },
+    buildBreadcrumbJsonLd([
+      { name: "Home", path: "/" },
+      { name: "Shop", path: "/shop" },
+      { name: product.theme, path: `/shop/${product.slug}` },
+    ]),
+  ];
 }
 
 export function buildOrganizationJsonLd() {
@@ -112,6 +122,10 @@ export function buildOrganizationJsonLd() {
     name: STORE_SEO.name,
     url: getSiteUrl("/"),
     sameAs: [STORE_SEO.instagramUrl],
+    areaServed: {
+      "@type": "Country",
+      name: "Pakistan",
+    },
   };
 }
 

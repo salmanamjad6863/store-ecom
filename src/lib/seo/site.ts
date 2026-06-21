@@ -17,7 +17,7 @@ export const STORE_SEO = {
   name: env.storeName,
   tagline: "iPhone covers crafted for the woman who notices the details.",
   defaultDescription:
-    "Shop premium iPhone cases at iBloom Elara. Free delivery on orders above Rs. 5,000. Cash on delivery across Pakistan.",
+    "Shop premium iPhone covers at iBloom Elara. Free delivery on orders above Rs. 5,000. Cash on delivery across Pakistan.",
   instagramUrl: "https://www.instagram.com/ibloomelara/?hl=en",
 } as const;
 

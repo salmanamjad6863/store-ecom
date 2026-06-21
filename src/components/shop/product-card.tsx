@@ -8,6 +8,7 @@ import { Price } from "@/components/ui/price";
 import { useInView } from "@/hooks/use-in-view";
 import { prefetchProductById } from "@/lib/queries/prefetch-product";
 import { getListingImagePreloadUrl } from "@/lib/utils/listing-image-url";
+import { buildProductImageAlt } from "@/lib/seo/shop-seo";
 import { preloadImage } from "@/lib/utils/preload-image";
 import {
   getColorById,
@@ -201,7 +202,7 @@ export function ProductCard({ product, modelId, priority = false }: ProductCardP
           image ? (
             <GatedProductImage
               src={image}
-              alt={product.theme}
+              alt={buildProductImageAlt(product.theme, displayColor.colorName)}
               sizes="(max-width: 640px) 50vw, (max-width: 1024px) 33vw, 25vw"
               priority={priority}
               enabled={shouldLoadImage}

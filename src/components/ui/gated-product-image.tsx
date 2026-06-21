@@ -16,6 +16,8 @@ type GatedProductImageProps = {
   priority?: boolean;
   /** When false, skeleton only — no fetch until enabled. */
   enabled?: boolean;
+  /** Keep showing the previous image while the next src loads. */
+  smoothSwap?: boolean;
   className?: string;
   imageClassName?: string;
   soldOut?: boolean;
@@ -45,6 +47,7 @@ export function GatedProductImage({
   sizes,
   priority = false,
   enabled = true,
+  smoothSwap = false,
   className,
   imageClassName,
   soldOut = false,
@@ -53,6 +56,7 @@ export function GatedProductImage({
   const delivery = useMemo(() => getListingImageDelivery(src), [src]);
   const gated = useGatedImageSrc(delivery.src, {
     enabled: enabled && delivery.usePreloadGate,
+    keepPreviousWhileLoading: smoothSwap,
   });
   const direct = useImageLoaded(
     enabled && !delivery.usePreloadGate ? delivery.src : undefined,
@@ -103,7 +107,7 @@ export function GatedProductImage({
 
     return (
       <div className={cn("relative h-full w-full", className)}>
-        {gated.status !== "ready" ? <LoadingSkeleton /> : null}
+        {gated.status !== "ready" && !gated.displaySrc ? <LoadingSkeleton /> : null}
         {gated.displaySrc ? (
           <Image
             src={gated.displaySrc}
@@ -115,7 +119,7 @@ export function GatedProductImage({
             unoptimized
             className={cn(
               "object-contain object-center transition-opacity duration-300",
-              gated.status === "ready"
+              gated.status === "ready" || smoothSwap
                 ? soldOut
                   ? "opacity-80 saturate-[0.85]"
                   : "opacity-100"
