@@ -3,8 +3,10 @@
 import { useEffect, useState } from "react";
 import { useRouter } from "next/navigation";
 
+import { CheckoutLoadingState } from "@/components/checkout/checkout-loading-state";
 import { Container } from "@/components/ui/container";
 import { Text } from "@/components/ui/text";
+import { isCartRevalidationFresh } from "@/lib/cart/revalidate-stamp";
 import { useCart } from "@/hooks/use-cart";
 import { useCartHydrated } from "@/hooks/use-cart-hydrated";
 import { useRevalidateCart } from "@/hooks/use-revalidate-cart";
@@ -16,10 +18,9 @@ import { CheckoutForm } from "./checkout-form";
 export function CheckoutContent() {
   const router = useRouter();
   const hydrated = useCartHydrated();
-  const { items, getSubtotal } = useCart();
+  const { items } = useCart();
   const { revalidate } = useRevalidateCart();
   const { openCart } = useCartDrawer();
-  const subtotal = getSubtotal();
   const [isCompletingCheckout, setIsCompletingCheckout] = useState(false);
 
   useEffect(() => {
@@ -27,7 +28,7 @@ export function CheckoutContent() {
   }, []);
 
   useEffect(() => {
-    if (!hydrated) {
+    if (!hydrated || isCartRevalidationFresh()) {
       return;
     }
 
@@ -50,7 +51,7 @@ export function CheckoutContent() {
   }, [hydrated, items.length]);
 
   if (!hydrated) {
-    return null;
+    return <CheckoutLoadingState />;
   }
 
   if (items.length === 0 && !isCompletingCheckout) {
@@ -68,11 +69,7 @@ export function CheckoutContent() {
         </Text>
       </div>
 
-      <CheckoutForm
-        items={items}
-        subtotal={subtotal}
-        onCompletingChange={setIsCompletingCheckout}
-      />
+      <CheckoutForm onCompletingChange={setIsCompletingCheckout} />
     </Container>
   );
 }

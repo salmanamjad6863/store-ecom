@@ -1,7 +1,5 @@
 "use client";
 
-import Image from "next/image";
-
 import { ImageUploader } from "@/components/admin/image-uploader";
 import { ModelMultiSelect } from "@/components/admin/model-multi-select";
 import { Input } from "@/components/ui/input";
@@ -54,7 +52,7 @@ export function colorEntriesFromProduct(product: ProductWithVariants): ColorCase
       colorName: color.colorName,
       colorHex: color.colorHex ?? "#1a1a1a",
       themeLine: color.themeLine ?? "",
-      images: color.images.length > 0 ? color.images : [],
+      images: color.images.length > 0 ? color.images.slice(0, 1) : [],
       selectedModelIds: colorVariants.map((variant) => variant.modelId),
       modelQuantities: Object.fromEntries(
         colorVariants.map((variant) => [variant.modelId, variant.quantity]),
@@ -150,12 +148,11 @@ export function ColorCaseEditor({ entry, index, onChange, caseCounts }: ColorCas
 
       <div className="space-y-2">
         <Label>Case photo</Label>
-        {entry.images[0] ? (
-          <div className="relative mb-3 aspect-square max-w-[220px] overflow-hidden rounded-lg border border-muted/20">
-            <Image src={entry.images[0]} alt="" fill sizes="220px" className="object-cover" />
-          </div>
-        ) : null}
-        <ImageUploader images={entry.images} onChange={(images) => patch({ images })} />
+        <ImageUploader
+          images={entry.images}
+          maxImages={1}
+          onChange={(images) => patch({ images })}
+        />
       </div>
 
       <div className="space-y-3 border-t border-muted/20 pt-5">

@@ -1,12 +1,12 @@
 "use client";
 
-import { useQuery } from "@tanstack/react-query";
-import Image from "next/image";
+import { useQuery, useQueryClient } from "@tanstack/react-query";
 import { X } from "lucide-react";
 import { useEffect, useMemo, useRef, useState } from "react";
 import { createPortal } from "react-dom";
 
 import { Button } from "@/components/ui/button";
+import { GatedProductImage } from "@/components/ui/gated-product-image";
 import { Label } from "@/components/ui/label";
 import { Price } from "@/components/ui/price";
 import { QuantitySelector } from "@/components/ui/quantity-selector";
@@ -17,11 +17,13 @@ import { queryKeys } from "@/lib/queries/keys";
 import { productQueryDefaults } from "@/lib/queries/product-query-options";
 import { fetchProductWithVariantsById } from "@/lib/queries/products";
 import { cn } from "@/lib/utils/cn";
+import { getListingImagePreloadUrl } from "@/lib/utils/listing-image-url";
 import { preloadImage } from "@/lib/utils/preload-image";
 import { lockBodyScroll, unlockBodyScroll } from "@/lib/utils/scroll-lock";
 import {
   getColorById,
   getColorHeroImage,
+  getColorsForModel,
   getVariantsForColor,
   isColorSoldOut,
   resolvePreferredColor,
@@ -50,6 +52,7 @@ type ProductQuickPreviewProps = {
   initialColorId?: string;
   initialVariantId?: string;
   initialImage?: string;
+  initialModelId?: string;
   onClose: () => void;
   onExited?: () => void;
 };
@@ -79,62 +82,38 @@ function getListingImage(
 function getInitialModelId(
   product: Product,
   variantId?: string,
+  modelId?: string,
 ): string {
-  if (!variantId) {
-    return "";
+  if (variantId) {
+    const variants = isProductWithVariants(product) ? product.variants : undefined;
+    return variants?.find((variant) => variant.id === variantId)?.modelId ?? "";
   }
 
-  const variants = isProductWithVariants(product) ? product.variants : undefined;
-  return variants?.find((variant) => variant.id === variantId)?.modelId ?? "";
+  return modelId ?? "";
+}
+
+function preloadPreviewImage(rawSrc: string | undefined | null) {
+  if (!rawSrc) {
+    return;
+  }
+
+  preloadImage(getListingImagePreloadUrl(rawSrc));
 }
 
 function PreviewProductImage({ src, alt }: { src: string; alt: string }) {
-  const [shownSrc, setShownSrc] = useState(src);
-
-  useEffect(() => {
-    if (!src || src === shownSrc) {
-      return;
-    }
-
-    let cancelled = false;
-    const img = new window.Image();
-    img.decoding = "async";
-    img.src = src;
-
-    const commit = () => {
-      if (!cancelled) {
-        setShownSrc(src);
-      }
-    };
-
-    if (img.complete) {
-      commit();
-    } else {
-      img.onload = commit;
-    }
-
-    return () => {
-      cancelled = true;
-      img.onload = null;
-    };
-  }, [src, shownSrc]);
-
-  if (!shownSrc) {
+  if (!src) {
     return null;
   }
 
   return (
-    <div className="relative h-full w-full">
-      <Image
-        src={shownSrc}
-        alt={alt}
-        fill
-        sizes="(max-width: 640px) 300px, 320px"
-        className="object-contain drop-shadow-[0_12px_28px_rgba(43,26,20,0.12)]"
-        priority
-        unoptimized
-      />
-    </div>
+    <GatedProductImage
+      src={src}
+      alt={alt}
+      sizes="(max-width: 640px) 300px, 320px"
+      priority
+      smoothSwap
+      imageClassName="drop-shadow-[0_12px_28px_rgba(43,26,20,0.12)]"
+    />
   );
 }
 
@@ -268,6 +247,7 @@ export function ProductQuickPreview({
   initialColorId,
   initialVariantId,
   initialImage,
+  initialModelId,
   onClose,
   onExited,
 }: ProductQuickPreviewProps) {
@@ -285,24 +265,34 @@ export function ProductQuickPreview({
   const [visible, setVisible] = useState(false);
   const [selectedColorId, setSelectedColorId] = useState(listingColor.colorId);
   const [selectedModelId, setSelectedModelId] = useState(() =>
-    getInitialModelId(product, initialVariantId),
+    getInitialModelId(product, initialVariantId, initialModelId),
   );
   const [quantity, setQuantity] = useState(1);
   const [hasUserChangedSelection, setHasUserChangedSelection] = useState(false);
   const [isAdding, setIsAdding] = useState(false);
   const isAddingRef = useRef(false);
 
+  const queryClient = useQueryClient();
+
   const placeholderProduct = useMemo(
     (): ProductWithVariants => ({ ...product, variants: [] }),
     [product],
   );
 
-  const { data: fullProduct, isFetching } = useQuery({
+  const { data: fullProduct, isFetching, isPending } = useQuery({
     queryKey: queryKeys.products.detailWithVariantsById(product.id),
     queryFn: () => fetchProductWithVariantsById(product.id),
     enabled: open,
+    initialData: () =>
+      queryClient.getQueryData<ProductWithVariants>(
+        queryKeys.products.detailWithVariantsById(product.id),
+      ),
     placeholderData: (previousData): ProductWithVariants =>
-      previousData ?? placeholderProduct,
+      previousData ??
+      queryClient.getQueryData<ProductWithVariants>(
+        queryKeys.products.detailWithVariantsById(product.id),
+      ) ??
+      placeholderProduct,
     ...productQueryDefaults,
   });
 
@@ -312,8 +302,14 @@ export function ProductQuickPreview({
   const variants = catalogProduct.variants;
   const requiresModelSelection = productHasVariants(product);
   const hasVariants = requiresModelSelection && variants.length > 0;
-  const optionsLoading = isFetching && requiresModelSelection && variants.length === 0;
+  const optionsLoading =
+    requiresModelSelection && variants.length === 0 && (isPending || isFetching);
   const modelSelected = Boolean(selectedModelId);
+  const colorFilterModelId = selectedModelId || initialModelId;
+  const displayColors = useMemo(
+    () => getColorsForModel(catalogProduct, colorFilterModelId || undefined),
+    [catalogProduct, colorFilterModelId],
+  );
 
   const activeColor = useMemo(
     () => getColorById(catalogProduct, selectedColorId) ?? catalogProduct.colors[0],
@@ -384,16 +380,16 @@ export function ProductQuickPreview({
       return;
     }
 
-    preloadImage(initialImage);
+    preloadPreviewImage(initialImage);
 
     const color = resolvePreferredColor(product, initialColorId);
     setSelectedColorId(color.colorId);
-    setSelectedModelId(getInitialModelId(product, initialVariantId));
+    setSelectedModelId(getInitialModelId(product, initialVariantId, initialModelId));
     setQuantity(1);
     setHasUserChangedSelection(false);
     isAddingRef.current = false;
     setIsAdding(false);
-  }, [open, product, initialColorId, initialVariantId, initialImage]);
+  }, [open, product, initialColorId, initialVariantId, initialModelId, initialImage]);
 
   useEffect(() => {
     if (open) {
@@ -447,19 +443,29 @@ export function ProductQuickPreview({
       : resolvePreferredColor(catalogProduct, initialColorId);
 
     setSelectedColorId(color.colorId);
-    setSelectedModelId(cartVariant?.modelId ?? "");
+    setSelectedModelId(cartVariant?.modelId ?? initialModelId ?? "");
     setQuantity(1);
-  }, [open, catalogProduct, initialColorId, initialVariantId, optionsLoading]);
+  }, [open, catalogProduct, initialColorId, initialVariantId, initialModelId, optionsLoading]);
+
+  useEffect(() => {
+    if (!open || optionsLoading || !colorFilterModelId) {
+      return;
+    }
+
+    if (!displayColors.some((color) => color.colorId === selectedColorId)) {
+      setSelectedColorId(displayColors[0]?.colorId ?? selectedColorId);
+    }
+  }, [open, optionsLoading, colorFilterModelId, displayColors, selectedColorId]);
 
   useEffect(() => {
     if (!open || optionsLoading) {
       return;
     }
 
-    for (const color of catalogProduct.colors) {
-      preloadImage(getColorPreviewImage(color, variants));
+    for (const color of displayColors) {
+      preloadPreviewImage(getColorPreviewImage(color, variants));
     }
-  }, [open, optionsLoading, catalogProduct.colors, variants]);
+  }, [open, optionsLoading, displayColors, variants]);
 
   useEffect(() => {
     setQuantity((current) => Math.min(Math.max(current, 1), maxQuantity));
@@ -468,7 +474,7 @@ export function ProductQuickPreview({
   const handleColorSelect = (colorId: string) => {
     const color = getColorById(catalogProduct, colorId);
     if (color) {
-      preloadImage(getColorPreviewImage(color, variants));
+      preloadPreviewImage(getColorPreviewImage(color, variants));
     }
 
     setHasUserChangedSelection(true);
@@ -534,7 +540,7 @@ export function ProductQuickPreview({
     return null;
   }
 
-  const isMultiColor = catalogProduct.colors.length > 1;
+  const isMultiColor = displayColors.length > 1;
   const canAddToCart =
     !optionSoldOut &&
     !optionsLoading &&
@@ -661,7 +667,7 @@ export function ProductQuickPreview({
                       Choose your color
                     </p>
                     <div className="flex flex-wrap gap-2.5">
-                      {catalogProduct.colors.map((color) => {
+                      {displayColors.map((color) => {
                         const isActive = color.colorId === selectedColorId;
                         const soldOut = isColorSoldOut(color, variants);
 
@@ -672,7 +678,7 @@ export function ProductQuickPreview({
                             aria-label={`${color.colorName}${soldOut ? " — sold out" : ""}${isActive ? " (selected)" : ""}`}
                             aria-pressed={isActive}
                             onPointerEnter={() =>
-                              preloadImage(getColorPreviewImage(color, variants))
+                              preloadPreviewImage(getColorPreviewImage(color, variants))
                             }
                             onClick={() => handleColorSelect(color.colorId)}
                             className={cn(

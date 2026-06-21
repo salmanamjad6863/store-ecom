@@ -1,13 +1,14 @@
 "use client";
 
 import { Suspense, useMemo, useState } from "react";
-import { useSearchParams } from "next/navigation";
+import { usePathname, useSearchParams } from "next/navigation";
 
 import { SectionHeading } from "@/components/ui/section-heading";
 import { EmptyState } from "@/components/ui/empty-state";
 import { useProductSkeletonCount } from "@/hooks/use-product-skeleton-count";
 import { useProducts } from "@/hooks/use-products";
 import { filterAndSortProducts } from "@/lib/shop/filter-products";
+import { getActiveModelIdFromPath } from "@/lib/seo/collections";
 import { cn } from "@/lib/utils/cn";
 
 import { ProductGrid } from "./product-grid";
@@ -15,14 +16,31 @@ import { ProductGridSkeleton } from "./product-grid-skeleton";
 import { ShopControls } from "./shop-controls";
 import type { ShopSort } from "./shop-toolbar";
 
-type ShopContentInnerProps = {
-  skeletonCount?: number;
+export type ShopPageHeading = {
+  eyebrow?: string;
+  title: React.ReactNode;
+  lead?: string;
 };
 
-function ShopContentInner({ skeletonCount: skeletonCountHint }: ShopContentInnerProps) {
+type ShopContentInnerProps = {
+  skeletonCount?: number;
+  fixedModelId?: string;
+  heading?: ShopPageHeading;
+  /** Screen-reader H1 for SEO — does not change visible layout. */
+  srTitle?: string;
+};
+
+function ShopContentInner({
+  skeletonCount: skeletonCountHint,
+  fixedModelId,
+  heading,
+  srTitle,
+}: ShopContentInnerProps) {
+  const pathname = usePathname();
   const searchParams = useSearchParams();
-  const modelId = searchParams.get("model") ?? undefined;
+  const queryModelId = searchParams.get("model") ?? undefined;
   const theme = searchParams.get("theme") ?? undefined;
+  const modelId = fixedModelId ?? getActiveModelIdFromPath(pathname, queryModelId);
   const [search, setSearch] = useState("");
   const [sort, setSort] = useState<ShopSort>("newest");
 
@@ -40,18 +58,25 @@ function ShopContentInner({ skeletonCount: skeletonCountHint }: ShopContentInner
 
   const showSkeleton = isPending && !products;
 
+  const resolvedHeading = heading ?? {
+    eyebrow: "The Collection",
+    title: (
+      <>
+        Designed to be <em className="italic text-accent">irresistible</em>
+      </>
+    ),
+    lead: "Browse by iPhone model or design. Each color is its own product.",
+  };
+
   return (
     <div className="bg-soft">
       <div className="mx-auto max-w-7xl px-4 py-10 sm:px-6 sm:py-14 lg:px-10 lg:py-16">
         <header className="border-b border-deep/10 pb-8 sm:pb-10">
+          {srTitle ? <h1 className="sr-only">{srTitle}</h1> : null}
           <SectionHeading
-            eyebrow="The Collection"
-            title={
-              <>
-                Designed to be <em className="italic text-accent">irresistible</em>
-              </>
-            }
-            lead="Browse by iPhone model or design. Each color is its own product."
+            eyebrow={resolvedHeading.eyebrow}
+            title={resolvedHeading.title}
+            lead={resolvedHeading.lead}
           />
         </header>
 
@@ -62,7 +87,7 @@ function ShopContentInner({ skeletonCount: skeletonCountHint }: ShopContentInner
           onSortChange={setSort}
         />
 
-        <section className="mt-8 sm:mt-10">
+        <section className="mt-8 sm:mt-10" aria-label="Products">
           {showSkeleton && skeletonCount > 0 ? (
             <ProductGridSkeleton count={skeletonCount} />
           ) : null}
@@ -82,7 +107,7 @@ function ShopContentInner({ skeletonCount: skeletonCountHint }: ShopContentInner
                 isFetching && products && "opacity-60",
               )}
             >
-              <ProductGrid products={displayedProducts} />
+              <ProductGrid products={displayedProducts} modelId={modelId} />
             </div>
           ) : null}
 
@@ -108,8 +133,8 @@ function ShopContentInner({ skeletonCount: skeletonCountHint }: ShopContentInner
               title="The drop is coming soon"
               description={
                 modelId
-                  ? "No cases for this iPhone model yet. Browse all models instead."
-                  : "New cases arrive every Friday — check back soon."
+                  ? "No covers for this iPhone model yet. Browse all models instead."
+                  : "New covers arrive every Friday — check back soon."
               }
               className="border-deep/15 bg-cream/50"
             />
@@ -120,24 +145,22 @@ function ShopContentInner({ skeletonCount: skeletonCountHint }: ShopContentInner
   );
 }
 
-type ShopContentProps = {
-  skeletonCount?: number;
-};
+type ShopContentProps = ShopContentInnerProps;
 
-export function ShopContent({ skeletonCount }: ShopContentProps) {
+export function ShopContent(props: ShopContentProps) {
   return (
     <Suspense
       fallback={
         <div className="bg-soft px-4 py-10 sm:px-6 lg:px-10">
           <div className="mx-auto max-w-7xl">
-            {skeletonCount && skeletonCount > 0 ? (
-              <ProductGridSkeleton count={skeletonCount} />
+            {props.skeletonCount && props.skeletonCount > 0 ? (
+              <ProductGridSkeleton count={props.skeletonCount} />
             ) : null}
           </div>
         </div>
       }
     >
-      <ShopContentInner skeletonCount={skeletonCount} />
+      <ShopContentInner {...props} />
     </Suspense>
   );
 }

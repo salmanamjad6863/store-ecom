@@ -119,7 +119,13 @@ export function syncCartItems(
         name: product.theme || product.name,
         modelName: variant.modelName,
         colorName,
-        image: variant.images[0] ?? color?.heroImage ?? product.heroImage ?? product.images[0] ?? "",
+        image:
+          color?.heroImage ??
+          color?.images[0] ??
+          variant.images[0] ??
+          product.heroImage ??
+          product.images[0] ??
+          "",
         unitPrice,
         quantity,
         maxQuantity,

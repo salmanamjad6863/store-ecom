@@ -3,6 +3,8 @@
 import { create } from "zustand";
 import { persist } from "zustand/middleware";
 
+import { getCartImagePreloadUrl } from "@/lib/utils/listing-image-url";
+import { preloadImage } from "@/lib/utils/preload-image";
 import { getColorById } from "@/lib/utils/product-colors";
 import {
   productHasVariants,
@@ -168,12 +170,16 @@ export function addVariantToCart(
   const unitPrice = resolveCartUnitPrice(product, variant);
   const maxQuantity = variant?.quantity ?? product.quantity;
   const image =
-    variant?.images[0] ??
     color?.heroImage ??
     color?.images[0] ??
+    variant?.images[0] ??
     product.heroImage ??
     product.images[0] ??
     "";
+
+  if (image) {
+    preloadImage(getCartImagePreloadUrl(image));
+  }
 
   useCartStore.getState().addItem({
     productId: product.id,
@@ -206,3 +212,6 @@ export function addDefaultVariantToCart(
 
 export const selectCartItemCount = (state: CartState) =>
   state.items.reduce((total, item) => total + item.quantity, 0);
+
+export const selectCartSubtotal = (state: CartState) =>
+  state.items.reduce((total, item) => total + item.unitPrice * item.quantity, 0);

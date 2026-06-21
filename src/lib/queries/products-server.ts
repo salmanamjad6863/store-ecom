@@ -55,6 +55,48 @@ export async function fetchProductsOnServer(
   return products.sort((a, b) => b.createdAt.getTime() - a.createdAt.getTime());
 }
 
+/** Parallel variant fetch for catalog products — warms preview cache on SSR. */
+export async function buildProductVariantsMap(
+  products: Product[],
+): Promise<Map<string, Awaited<ReturnType<typeof fetchVariantsForProductServer>>>> {
+  const uniqueWithVariants = [
+    ...new Map(
+      products.filter((product) => product.hasVariants).map((product) => [product.id, product]),
+    ).values(),
+  ];
+
+  if (uniqueWithVariants.length === 0) {
+    return new Map();
+  }
+
+  const entries = await Promise.all(
+    uniqueWithVariants.map(
+      async (product) =>
+        [product.id, await fetchVariantsForProductServer(product.id)] as const,
+    ),
+  );
+
+  return new Map(entries);
+}
+
+export function attachVariantsToProducts(
+  products: Product[],
+  variantMap: Map<string, Awaited<ReturnType<typeof fetchVariantsForProductServer>>>,
+): ProductWithVariants[] {
+  return products.map((product) => ({
+    ...product,
+    variants: product.hasVariants ? (variantMap.get(product.id) ?? []) : [],
+  }));
+}
+
+export async function fetchProductsWithVariantsOnServer(
+  options: FetchProductsOnServerOptions = {},
+): Promise<ProductWithVariants[]> {
+  const products = await fetchProductsOnServer(options);
+  const variantMap = await buildProductVariantsMap(products);
+  return attachVariantsToProducts(products, variantMap);
+}
+
 export async function fetchProductsByIdsOnServer(ids: string[]): Promise<Product[]> {
   const uniqueIds = [...new Set(ids)];
 

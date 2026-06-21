@@ -10,12 +10,17 @@ import { Text } from "@/components/ui/text";
 type ImageUploaderProps = {
   images: string[];
   onChange: (images: string[]) => void;
+  /** When set, uploads replace existing images instead of appending. */
+  maxImages?: number;
 };
 
-export function ImageUploader({ images, onChange }: ImageUploaderProps) {
+export function ImageUploader({ images, onChange, maxImages = 1 }: ImageUploaderProps) {
   const inputRef = useRef<HTMLInputElement>(null);
   const [uploading, setUploading] = useState(false);
   const [error, setError] = useState<string | null>(null);
+
+  const isSingleImage = maxImages === 1;
+  const previewImage = images[0];
 
   const uploadFile = async (file: File) => {
     const formData = new FormData();
@@ -44,14 +49,20 @@ export function ImageUploader({ images, onChange }: ImageUploaderProps) {
     setError(null);
 
     try {
+      const selected = isSingleImage ? [files[0]] : Array.from(files).slice(0, maxImages);
       const uploaded: string[] = [];
 
-      for (const file of Array.from(files)) {
+      for (const file of selected) {
         const url = await uploadFile(file);
         uploaded.push(url);
       }
 
-      onChange([...images, ...uploaded]);
+      if (isSingleImage) {
+        onChange(uploaded.slice(0, 1));
+      } else {
+        const combined = [...images, ...uploaded].slice(0, maxImages);
+        onChange(combined);
+      }
     } catch (uploadError) {
       setError(
         uploadError instanceof Error ? uploadError.message : "Could not upload image.",
@@ -70,31 +81,54 @@ export function ImageUploader({ images, onChange }: ImageUploaderProps) {
 
   return (
     <div className="space-y-4">
-      <div className="flex flex-wrap gap-3">
-        {images.map((image, index) => (
-          <div
-            key={`${image}-${index}`}
-            className="relative h-24 w-24 overflow-hidden rounded-lg border border-muted/20"
-          >
-            <Image src={image} alt="" fill sizes="96px" className="object-cover" />
-            <button
-              type="button"
-              onClick={() => removeImage(index)}
-              className="absolute right-1 top-1 rounded-full bg-foreground/80 p-1 text-white hover:bg-foreground"
-              aria-label="Remove image"
-            >
-              <X className="h-3 w-3" />
-            </button>
+      {isSingleImage ? (
+        previewImage ? (
+          <div className="relative aspect-square max-w-[220px] overflow-hidden rounded-lg border border-muted/20">
+            <Image src={previewImage} alt="" fill sizes="220px" className="object-cover" />
+            {uploading ? (
+              <div className="absolute inset-0 flex items-center justify-center bg-foreground/40">
+                <Loader2 className="h-6 w-6 animate-spin text-white" />
+              </div>
+            ) : null}
+            {!uploading ? (
+              <button
+                type="button"
+                onClick={() => removeImage(0)}
+                className="absolute right-2 top-2 rounded-full bg-foreground/80 p-1 text-white hover:bg-foreground"
+                aria-label="Remove image"
+              >
+                <X className="h-3 w-3" />
+              </button>
+            ) : null}
           </div>
-        ))}
-      </div>
+        ) : null
+      ) : (
+        <div className="flex flex-wrap gap-3">
+          {images.map((image, index) => (
+            <div
+              key={`${image}-${index}`}
+              className="relative h-24 w-24 overflow-hidden rounded-lg border border-muted/20"
+            >
+              <Image src={image} alt="" fill sizes="96px" className="object-cover" />
+              <button
+                type="button"
+                onClick={() => removeImage(index)}
+                className="absolute right-1 top-1 rounded-full bg-foreground/80 p-1 text-white hover:bg-foreground"
+                aria-label="Remove image"
+              >
+                <X className="h-3 w-3" />
+              </button>
+            </div>
+          ))}
+        </div>
+      )}
 
       <div className="flex flex-wrap items-center gap-3">
         <input
           ref={inputRef}
           type="file"
           accept="image/jpeg,image/png,image/webp,image/gif"
-          multiple
+          multiple={!isSingleImage}
           className="hidden"
           onChange={(event) => {
             void handleFiles(event.target.files);
@@ -115,7 +149,7 @@ export function ImageUploader({ images, onChange }: ImageUploaderProps) {
           ) : (
             <>
               <ImagePlus className="mr-2 h-4 w-4" />
-              Upload case photos
+              {isSingleImage && previewImage ? "Replace photo" : "Upload case photo"}
             </>
           )}
         </Button>

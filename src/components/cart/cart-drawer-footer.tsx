@@ -1,12 +1,13 @@
 "use client";
 
+import { usePathname, useRouter } from "next/navigation";
 import { useState } from "react";
-import { useRouter } from "next/navigation";
 
 import { Button } from "@/components/ui/button";
 import { OrderPricingSummary } from "@/components/orders/order-pricing-summary";
 import { Text } from "@/components/ui/text";
 import { useRevalidateCart } from "@/hooks/use-revalidate-cart";
+import { markCartRevalidated } from "@/lib/cart/revalidate-stamp";
 import { getOrderPricing } from "@/lib/orders/shipping";
 import { scrollToTop } from "@/lib/utils/scroll-lock";
 import { useToast } from "@/providers/toast-provider";
@@ -20,12 +21,14 @@ type CartDrawerFooterProps = {
 
 export function CartDrawerFooter({ subtotal, itemCount, onClose }: CartDrawerFooterProps) {
   const router = useRouter();
+  const pathname = usePathname();
   const { revalidate } = useRevalidateCart();
   const { toast } = useToast();
   const [isCheckingOut, setIsCheckingOut] = useState(false);
   const pricing = getOrderPricing(subtotal);
+  const isOnCheckout = pathname === "/checkout";
 
-  const handleCheckout = async () => {
+  const handleProceedToCheckout = async () => {
     setIsCheckingOut(true);
 
     try {
@@ -42,12 +45,18 @@ export function CartDrawerFooter({ subtotal, itemCount, onClose }: CartDrawerFoo
         return;
       }
 
-      onClose();
       scrollToTop();
+      markCartRevalidated();
+      onClose();
       router.push("/checkout");
     } finally {
       setIsCheckingOut(false);
     }
+  };
+
+  const handleContinueCheckout = () => {
+    onClose();
+    scrollToTop();
   };
 
   return (
@@ -70,9 +79,13 @@ export function CartDrawerFooter({ subtotal, itemCount, onClose }: CartDrawerFoo
         size="lg"
         className="w-full"
         disabled={isCheckingOut || itemCount === 0}
-        onClick={() => void handleCheckout()}
+        onClick={() => void (isOnCheckout ? handleContinueCheckout() : handleProceedToCheckout())}
       >
-        {isCheckingOut ? "Checking stock…" : "Proceed to checkout"}
+        {isCheckingOut
+          ? "Checking stock…"
+          : isOnCheckout
+            ? "Continue checkout"
+            : "Proceed to checkout"}
       </Button>
 
       <Text variant="small" as="p" className="mt-2 text-center text-muted">

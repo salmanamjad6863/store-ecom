@@ -5,6 +5,7 @@ import { usePathname, useSearchParams } from "next/navigation";
 import { useMemo } from "react";
 
 import { usePhoneModels } from "@/hooks/use-phone-models";
+import { buildShopModelHref, getActiveModelIdFromPath } from "@/lib/seo/collections";
 import { cn } from "@/lib/utils/cn";
 
 type ModelFiltersProps = {
@@ -14,7 +15,8 @@ type ModelFiltersProps = {
 export function ModelFilters({ modelIds }: ModelFiltersProps) {
   const pathname = usePathname();
   const searchParams = useSearchParams();
-  const activeModelId = searchParams.get("model");
+  const activeModelId = getActiveModelIdFromPath(pathname, searchParams.get("model"));
+  const activeTheme = searchParams.get("theme");
   const { data: phoneModels = [] } = usePhoneModels();
 
   const filterModels = useMemo(
@@ -23,18 +25,7 @@ export function ModelFilters({ modelIds }: ModelFiltersProps) {
     [phoneModels, modelIds],
   );
 
-  const buildHref = (modelId?: string) => {
-    const params = new URLSearchParams(searchParams.toString());
-
-    if (modelId) {
-      params.set("model", modelId);
-    } else {
-      params.delete("model");
-    }
-
-    const query = params.toString();
-    return query ? `${pathname}?${query}` : pathname;
-  };
+  const buildHref = (modelId?: string) => buildShopModelHref(modelId, activeTheme);
 
   if (filterModels.length === 0) {
     return null;

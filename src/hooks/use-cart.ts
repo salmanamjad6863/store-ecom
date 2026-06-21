@@ -1,23 +1,25 @@
 "use client";
 
-import { useCartStore, selectCartItemCount } from "@/stores/cart-store";
+import { useCartStore, selectCartItemCount, selectCartSubtotal } from "@/stores/cart-store";
 
 export function useCart() {
   const items = useCartStore((state) => state.items);
   const itemCount = useCartStore(selectCartItemCount);
+  const subtotal = useCartStore(selectCartSubtotal);
   const addItem = useCartStore((state) => state.addItem);
   const removeItem = useCartStore((state) => state.removeItem);
   const updateQuantity = useCartStore((state) => state.updateQuantity);
   const clearCart = useCartStore((state) => state.clearCart);
-  const getSubtotal = useCartStore((state) => state.getSubtotal);
 
   return {
     items,
     itemCount,
+    subtotal,
     addItem,
     removeItem,
     updateQuantity,
     clearCart,
-    getSubtotal,
+    /** @deprecated Prefer `subtotal` — kept for callers that expect a getter. */
+    getSubtotal: () => subtotal,
   };
 }
