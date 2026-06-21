@@ -212,3 +212,6 @@ export function addDefaultVariantToCart(
 
 export const selectCartItemCount = (state: CartState) =>
   state.items.reduce((total, item) => total + item.quantity, 0);
+
+export const selectCartSubtotal = (state: CartState) =>
+  state.items.reduce((total, item) => total + item.unitPrice * item.quantity, 0);

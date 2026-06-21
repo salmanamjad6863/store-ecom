@@ -18,10 +18,9 @@ import { CheckoutForm } from "./checkout-form";
 export function CheckoutContent() {
   const router = useRouter();
   const hydrated = useCartHydrated();
-  const { items, getSubtotal } = useCart();
+  const { items } = useCart();
   const { revalidate } = useRevalidateCart();
   const { openCart } = useCartDrawer();
-  const subtotal = getSubtotal();
   const [isCompletingCheckout, setIsCompletingCheckout] = useState(false);
 
   useEffect(() => {
@@ -70,11 +69,7 @@ export function CheckoutContent() {
         </Text>
       </div>
 
-      <CheckoutForm
-        items={items}
-        subtotal={subtotal}
-        onCompletingChange={setIsCompletingCheckout}
-      />
+      <CheckoutForm onCompletingChange={setIsCompletingCheckout} />
     </Container>
   );
 }

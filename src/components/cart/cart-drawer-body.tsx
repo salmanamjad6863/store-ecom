@@ -1,5 +1,6 @@
 "use client";
 
+import { usePathname } from "next/navigation";
 import { useEffect } from "react";
 
 import { Button } from "@/components/ui/button";
@@ -7,6 +8,7 @@ import { EmptyState } from "@/components/ui/empty-state";
 import { Spinner } from "@/components/ui/spinner";
 import { useCart } from "@/hooks/use-cart";
 import { useRevalidateCart } from "@/hooks/use-revalidate-cart";
+import { isCartRevalidationFresh } from "@/lib/cart/revalidate-stamp";
 import { getCartImagePreloadUrl } from "@/lib/utils/listing-image-url";
 import { preloadImage } from "@/lib/utils/preload-image";
 import { useProductPreview } from "@/providers/product-preview-provider";
@@ -22,11 +24,11 @@ type CartDrawerBodyProps = {
 };
 
 export function CartDrawerBody({ onClose }: CartDrawerBodyProps) {
-  const { items, itemCount, updateQuantity, removeItem, getSubtotal } = useCart();
+  const pathname = usePathname();
+  const { items, itemCount, subtotal, updateQuantity, removeItem } = useCart();
   const { revalidate, isRevalidating, lastResult } = useRevalidateCart();
   const { openPreviewFromCartItem } = useProductPreview();
   const { toast } = useToast();
-  const subtotal = getSubtotal();
 
   useEffect(() => {
     for (const item of items) {
@@ -38,6 +40,11 @@ export function CartDrawerBody({ onClose }: CartDrawerBodyProps) {
 
   useEffect(() => {
     if (items.length === 0) {
+      return;
+    }
+
+    // On checkout, cart was already validated — skip to avoid overwriting live edits.
+    if (pathname === "/checkout" || isCartRevalidationFresh()) {
       return;
     }
 
@@ -94,7 +101,7 @@ export function CartDrawerBody({ onClose }: CartDrawerBodyProps) {
         </ul>
       </div>
 
-      <CartDrawerFooter subtotal={subtotal} itemCount={itemCount} />
+      <CartDrawerFooter subtotal={subtotal} itemCount={itemCount} onClose={onClose} />
     </div>
   );
 }

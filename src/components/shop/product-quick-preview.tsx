@@ -1,6 +1,6 @@
 "use client";
 
-import { useQuery } from "@tanstack/react-query";
+import { useQuery, useQueryClient } from "@tanstack/react-query";
 import { X } from "lucide-react";
 import { useEffect, useMemo, useRef, useState } from "react";
 import { createPortal } from "react-dom";
@@ -272,17 +272,27 @@ export function ProductQuickPreview({
   const [isAdding, setIsAdding] = useState(false);
   const isAddingRef = useRef(false);
 
+  const queryClient = useQueryClient();
+
   const placeholderProduct = useMemo(
     (): ProductWithVariants => ({ ...product, variants: [] }),
     [product],
   );
 
-  const { data: fullProduct, isFetching } = useQuery({
+  const { data: fullProduct, isFetching, isPending } = useQuery({
     queryKey: queryKeys.products.detailWithVariantsById(product.id),
     queryFn: () => fetchProductWithVariantsById(product.id),
     enabled: open,
+    initialData: () =>
+      queryClient.getQueryData<ProductWithVariants>(
+        queryKeys.products.detailWithVariantsById(product.id),
+      ),
     placeholderData: (previousData): ProductWithVariants =>
-      previousData ?? placeholderProduct,
+      previousData ??
+      queryClient.getQueryData<ProductWithVariants>(
+        queryKeys.products.detailWithVariantsById(product.id),
+      ) ??
+      placeholderProduct,
     ...productQueryDefaults,
   });
 
@@ -292,7 +302,8 @@ export function ProductQuickPreview({
   const variants = catalogProduct.variants;
   const requiresModelSelection = productHasVariants(product);
   const hasVariants = requiresModelSelection && variants.length > 0;
-  const optionsLoading = isFetching && requiresModelSelection && variants.length === 0;
+  const optionsLoading =
+    requiresModelSelection && variants.length === 0 && (isPending || isFetching);
   const modelSelected = Boolean(selectedModelId);
   const colorFilterModelId = selectedModelId || initialModelId;
   const displayColors = useMemo(

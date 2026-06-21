@@ -4,6 +4,7 @@ import { Suspense } from "react";
 
 import { CartDrawer } from "@/components/cart/cart-drawer";
 import { CartStockSync } from "@/components/cart/cart-stock-sync";
+import { CatalogVariantWarmup } from "@/components/shop/catalog-variant-warmup";
 import { CartDrawerProvider } from "@/providers/cart-drawer-provider";
 import { ModelFilterDrawerProvider } from "@/providers/model-filter-drawer-provider";
 import { ProductPreviewProvider } from "@/providers/product-preview-provider";
@@ -31,6 +32,7 @@ export function StoreLayout({ children }: StoreLayoutProps) {
           </Suspense>
           <CartDrawer />
           <CartStockSync />
+          <CatalogVariantWarmup />
         </ProductPreviewProvider>
       </CartDrawerProvider>
     </ModelFilterDrawerProvider>

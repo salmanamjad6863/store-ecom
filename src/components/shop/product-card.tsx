@@ -77,6 +77,12 @@ export function ProductCard({ product, modelId, priority = false }: ProductCardP
   }, [product.id, modelId]);
 
   useEffect(() => {
+    if (inView && product.hasVariants) {
+      void prefetchProductById(queryClient, product.id);
+    }
+  }, [inView, product.hasVariants, product.id, queryClient]);
+
+  useEffect(() => {
     const inScope = colors.some((color) => color.colorId === selectedColorId);
     if (!inScope) {
       return;

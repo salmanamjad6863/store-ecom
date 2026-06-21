@@ -4,6 +4,7 @@ import { redirect } from "next/navigation";
 import { ShopContent } from "@/components/shop/shop-content";
 import { CatalogHydration } from "@/components/providers/catalog-hydration";
 import { buildCatalogDehydratedState } from "@/lib/queries/hydrate-catalog";
+import { resolveCatalogWithVariants } from "@/lib/queries/catalog-variants-server";
 import { fetchPhoneModelsOnServer } from "@/lib/queries/phone-models-server";
 import { fetchProductsOnServer } from "@/lib/queries/products-server";
 import { getModelCollectionPath } from "@/lib/seo/collections";
@@ -43,9 +44,13 @@ export default async function ShopPage({ searchParams }: ShopPageProps) {
     fetchPhoneModelsOnServer(),
   ]);
 
+  const catalog = catalogProducts ?? products;
+  const catalogWithVariants = await resolveCatalogWithVariants(catalog);
+
   const dehydratedState = buildCatalogDehydratedState({
     products,
-    catalogProducts: catalogProducts ?? products,
+    catalogProducts: catalog,
+    catalogWithVariants,
     listFilters,
     phoneModels,
   });

@@ -27,10 +27,13 @@ export function useRevalidateCart() {
     setIsRevalidating(true);
 
     try {
-      const productIds = items.map((item) => item.productId);
+      const productIds = [...new Set(useCartStore.getState().items.map((item) => item.productId))];
       const products = await fetchProductsWithVariantsByIds(productIds);
       const productsById = buildProductMap(products);
-      const { nextItems, result } = syncCartItems(items, productsById);
+
+      // Re-read after fetch — user may have changed quantities while we were loading.
+      const currentItems = useCartStore.getState().items;
+      const { nextItems, result } = syncCartItems(currentItems, productsById);
 
       replaceItems(nextItems);
       setLastResult(result);

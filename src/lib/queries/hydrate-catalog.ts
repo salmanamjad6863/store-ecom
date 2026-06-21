@@ -7,8 +7,8 @@ import {
   PRODUCT_GC_TIME_MS,
   PRODUCT_STALE_TIME_MS,
 } from "@/lib/queries/product-query-options";
-import { reviveProduct, reviveProducts } from "@/lib/queries/product-serialization";
-import type { Product } from "@/types/product";
+import { reviveProduct, reviveProducts, reviveProductWithVariants } from "@/lib/queries/product-serialization";
+import type { Product, ProductWithVariants } from "@/types/product";
 import type { PhoneModel } from "@/types/phone-model";
 
 type CatalogListFilters = {
@@ -22,6 +22,8 @@ type BuildCatalogDehydratedStateOptions = {
   products: Product[];
   /** Full catalog for drawer metadata and unfiltered list cache. */
   catalogProducts?: Product[];
+  /** Products with variants for instant preview — seeds detail-by-id cache. */
+  catalogWithVariants?: ProductWithVariants[];
   featuredHeroItems?: FeaturedHeroItem[];
   listFilters?: CatalogListFilters;
   phoneModels?: PhoneModel[];
@@ -42,6 +44,7 @@ function createSeedQueryClient(): QueryClient {
 export function buildCatalogDehydratedState({
   products,
   catalogProducts,
+  catalogWithVariants,
   featuredHeroItems,
   listFilters = {},
   phoneModels,
@@ -52,6 +55,20 @@ export function buildCatalogDehydratedState({
 
   queryClient.setQueryData(queryKeys.products.list(listFilters), revived);
   queryClient.setQueryData(queryKeys.products.list({}), revivedCatalog);
+
+  if (catalogWithVariants?.length) {
+    const seen = new Set<string>();
+    for (const product of catalogWithVariants) {
+      if (seen.has(product.id)) {
+        continue;
+      }
+      seen.add(product.id);
+      queryClient.setQueryData(
+        queryKeys.products.detailWithVariantsById(product.id),
+        reviveProductWithVariants(product),
+      );
+    }
+  }
 
   if (featuredHeroItems) {
     queryClient.setQueryData(

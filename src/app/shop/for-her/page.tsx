@@ -4,6 +4,7 @@ import { ShopContent } from "@/components/shop/shop-content";
 import { CatalogHydration } from "@/components/providers/catalog-hydration";
 import { JsonLd } from "@/components/seo/json-ld";
 import { buildCatalogDehydratedState } from "@/lib/queries/hydrate-catalog";
+import { resolveCatalogWithVariants } from "@/lib/queries/catalog-variants-server";
 import { fetchPhoneModelsOnServer } from "@/lib/queries/phone-models-server";
 import { fetchProductsOnServer } from "@/lib/queries/products-server";
 import { buildForHerMetadata } from "@/lib/seo/collections";
@@ -17,8 +18,11 @@ export default async function ForHerShopPage() {
     fetchPhoneModelsOnServer(),
   ]);
 
+  const catalogWithVariants = await resolveCatalogWithVariants(products);
+
   const dehydratedState = buildCatalogDehydratedState({
     products,
+    catalogWithVariants,
     phoneModels,
   });
 

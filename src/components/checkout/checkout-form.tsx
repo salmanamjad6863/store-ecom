@@ -11,20 +11,16 @@ import { Button } from "@/components/ui/button";
 import { Card } from "@/components/ui/card";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
-import { Price } from "@/components/ui/price";
 import { Text } from "@/components/ui/text";
 import { Textarea } from "@/components/ui/textarea";
-import { OrderPricingSummary } from "@/components/orders/order-pricing-summary";
+import { CheckoutOrderSummary } from "@/components/checkout/checkout-order-summary";
 import { useAuth } from "@/hooks/use-auth";
 import { useRevalidateCart } from "@/hooks/use-revalidate-cart";
 import { isAdminEmail } from "@/lib/auth/admin";
-import { getOrderPricing } from "@/lib/orders/shipping";
 import { queryKeys } from "@/lib/queries/keys";
 import { isValidPkPhone, normalizePkPhone } from "@/lib/validation/phone";
 import { useToast } from "@/providers/toast-provider";
 import { useCartStore } from "@/stores/cart-store";
-import type { CartItem } from "@/types/cart";
-import { getCartLineKey } from "@/types/cart";
 
 const checkoutSchema = z.object({
   name: z.string().min(2, "Name is required"),
@@ -44,12 +40,10 @@ const checkoutSchema = z.object({
 type CheckoutFormValues = z.infer<typeof checkoutSchema>;
 
 type CheckoutFormProps = {
-  items: CartItem[];
-  subtotal: number;
   onCompletingChange?: (completing: boolean) => void;
 };
 
-export function CheckoutForm({ items, subtotal, onCompletingChange }: CheckoutFormProps) {
+export function CheckoutForm({ onCompletingChange }: CheckoutFormProps) {
   const router = useRouter();
   const queryClient = useQueryClient();
   const { user } = useAuth();
@@ -76,8 +70,6 @@ export function CheckoutForm({ items, subtotal, onCompletingChange }: CheckoutFo
 
   const checkoutUserId =
     user?.uid && !isAdminEmail(user.email) ? user.uid : undefined;
-
-  const pricing = getOrderPricing(subtotal);
 
   const onSubmit = async (values: CheckoutFormValues) => {
     setSubmitError(null);
@@ -255,33 +247,7 @@ export function CheckoutForm({ items, subtotal, onCompletingChange }: CheckoutFo
         </Button>
       </Card>
 
-      <Card className="h-fit space-y-4">
-        <Text variant="h2" as="h2" className="text-xl">
-          Your order
-        </Text>
-        <ul className="space-y-3 border-b border-muted/20 pb-4">
-          {items.map((item) => (
-            <li
-              key={getCartLineKey(item.productId, item.colorId, item.variantId)}
-              className="flex justify-between gap-4 text-sm"
-            >
-              <span className="text-muted">
-                {item.name}
-                {item.modelName && item.colorName
-                  ? ` (${item.modelName} · ${item.colorName})`
-                  : ""}{" "}
-                × {item.quantity}
-              </span>
-              <Price amount={item.unitPrice * item.quantity} />
-            </li>
-          ))}
-        </ul>
-        <OrderPricingSummary
-          subtotal={pricing.subtotal}
-          shipping={pricing.shipping}
-          total={pricing.total}
-        />
-      </Card>
+      <CheckoutOrderSummary />
     </form>
   );
 }

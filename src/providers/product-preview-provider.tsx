@@ -49,6 +49,13 @@ export function ProductPreviewProvider({ children }: { children: ReactNode }) {
 
   const openPreview = useCallback<ProductPreviewContextValue["openPreview"]>(
     (product, options) => {
+      const cached = queryClient.getQueryData(
+        queryKeys.products.detailWithVariantsById(product.id),
+      );
+      if (!cached && product.hasVariants) {
+        void prefetchProductById(queryClient, product.id);
+      }
+
       setPreview({
         product,
         initialColorId: options?.initialColorId,
@@ -58,7 +65,7 @@ export function ProductPreviewProvider({ children }: { children: ReactNode }) {
       });
       setIsOpen(true);
     },
-    [],
+    [queryClient],
   );
 
   const closePreview = useCallback(() => {

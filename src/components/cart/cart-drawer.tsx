@@ -1,7 +1,6 @@
 "use client";
 
 import { X } from "lucide-react";
-import { usePathname } from "next/navigation";
 import { useEffect, useRef, useState } from "react";
 
 import { Text } from "@/components/ui/text";
@@ -17,19 +16,12 @@ const PANEL_ANIMATION_MS = 550;
 const OPEN_DELAY_MS = 60;
 
 export function CartDrawer() {
-  const pathname = usePathname();
   const { isOpen, closeCart } = useCartDrawer();
   const { isOpen: isPreviewOpen } = useProductPreview();
   const { itemCount } = useCart();
   const [present, setPresent] = useState(false);
   const [visible, setVisible] = useState(false);
   const scrollLockedRef = useRef(false);
-
-  useEffect(() => {
-    if (pathname === "/checkout" && isOpen) {
-      closeCart();
-    }
-  }, [pathname, isOpen, closeCart]);
 
   useEffect(() => {
     if (isOpen) {

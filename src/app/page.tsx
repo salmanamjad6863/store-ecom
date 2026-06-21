@@ -30,9 +30,10 @@ export const metadata: Metadata = {
 };
 
 export default async function Home() {
-  const { products, featuredHeroItems, phoneModels } = await fetchHomeCatalogData();
+  const { products, catalogWithVariants, featuredHeroItems, phoneModels } = await fetchHomeCatalogData();
   const dehydratedState = buildCatalogDehydratedState({
     products,
+    catalogWithVariants,
     featuredHeroItems,
     phoneModels,
   });

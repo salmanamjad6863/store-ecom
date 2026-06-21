@@ -6,6 +6,7 @@ import { ShopContent } from "@/components/shop/shop-content";
 import { CatalogHydration } from "@/components/providers/catalog-hydration";
 import { JsonLd } from "@/components/seo/json-ld";
 import { buildCatalogDehydratedState } from "@/lib/queries/hydrate-catalog";
+import { resolveCatalogWithVariants } from "@/lib/queries/catalog-variants-server";
 import { fetchPhoneModelsOnServer } from "@/lib/queries/phone-models-server";
 import { fetchProductWithVariantsBySlugOnServer, fetchProductsOnServer } from "@/lib/queries/products-server";
 import {
@@ -85,9 +86,12 @@ export default async function ShopSlugPage({ params, searchParams }: ShopSlugPag
       fetchProductsOnServer(),
     ]);
 
+    const catalogWithVariants = await resolveCatalogWithVariants(catalogProducts);
+
     const dehydratedState = buildCatalogDehydratedState({
       products,
       catalogProducts,
+      catalogWithVariants,
       listFilters,
       phoneModels,
     });
