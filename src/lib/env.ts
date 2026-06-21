@@ -21,6 +21,7 @@ const publicEnvSchema = z.object({
   NEXT_PUBLIC_SITE_URL: z.string().url().optional(),
   NEXT_PUBLIC_CURRENCY_CODE: z.string().optional(),
   NEXT_PUBLIC_CURRENCY_LOCALE: z.string().optional(),
+  NEXT_PUBLIC_META_PIXEL_ID: z.string().optional(),
 });
 
 function formatEnvError(error: z.ZodError): string {
@@ -43,6 +44,7 @@ function parsePublicEnv() {
     NEXT_PUBLIC_SITE_URL: process.env.NEXT_PUBLIC_SITE_URL,
     NEXT_PUBLIC_CURRENCY_CODE: process.env.NEXT_PUBLIC_CURRENCY_CODE,
     NEXT_PUBLIC_CURRENCY_LOCALE: process.env.NEXT_PUBLIC_CURRENCY_LOCALE,
+    NEXT_PUBLIC_META_PIXEL_ID: process.env.NEXT_PUBLIC_META_PIXEL_ID,
   });
 
   if (!result.success) {
@@ -70,6 +72,7 @@ function parsePublicEnv() {
       code: data.NEXT_PUBLIC_CURRENCY_CODE ?? "PKR",
       locale: data.NEXT_PUBLIC_CURRENCY_LOCALE ?? "en-PK",
     },
+    metaPixelId: data.NEXT_PUBLIC_META_PIXEL_ID,
   };
 }
 

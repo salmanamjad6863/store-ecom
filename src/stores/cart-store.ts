@@ -4,6 +4,7 @@ import { create } from "zustand";
 import { persist } from "zustand/middleware";
 
 import { getCartImagePreloadUrl } from "@/lib/utils/listing-image-url";
+import { trackMetaAddToCart } from "@/lib/meta-pixel";
 import { preloadImage } from "@/lib/utils/preload-image";
 import { getColorById } from "@/lib/utils/product-colors";
 import {
@@ -194,6 +195,8 @@ export function addVariantToCart(
     maxQuantity,
     quantity,
   });
+
+  trackMetaAddToCart(product, quantity, unitPrice);
 }
 
 export function addDefaultVariantToCart(

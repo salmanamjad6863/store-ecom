@@ -1,17 +1,19 @@
 "use client";
 
-import { useEffect, useState } from "react";
+import { useEffect, useRef, useState } from "react";
 import { useRouter } from "next/navigation";
 
 import { CheckoutLoadingState } from "@/components/checkout/checkout-loading-state";
 import { Container } from "@/components/ui/container";
 import { Text } from "@/components/ui/text";
 import { isCartRevalidationFresh } from "@/lib/cart/revalidate-stamp";
+import { trackMetaInitiateCheckout } from "@/lib/meta-pixel";
 import { useCart } from "@/hooks/use-cart";
 import { useCartHydrated } from "@/hooks/use-cart-hydrated";
 import { useRevalidateCart } from "@/hooks/use-revalidate-cart";
 import { useCartDrawer } from "@/providers/cart-drawer-provider";
 import { scrollToTop } from "@/lib/utils/scroll-lock";
+import { selectCartSubtotal, useCartStore } from "@/stores/cart-store";
 
 import { CheckoutForm } from "./checkout-form";
 
@@ -22,10 +24,20 @@ export function CheckoutContent() {
   const { revalidate } = useRevalidateCart();
   const { openCart } = useCartDrawer();
   const [isCompletingCheckout, setIsCompletingCheckout] = useState(false);
+  const initiateCheckoutTracked = useRef(false);
 
   useEffect(() => {
     scrollToTop();
   }, []);
+
+  useEffect(() => {
+    if (!hydrated || items.length === 0 || initiateCheckoutTracked.current) {
+      return;
+    }
+
+    initiateCheckoutTracked.current = true;
+    trackMetaInitiateCheckout(items, selectCartSubtotal(useCartStore.getState()));
+  }, [hydrated, items]);
 
   useEffect(() => {
     if (!hydrated || isCartRevalidationFresh()) {

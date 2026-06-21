@@ -2,6 +2,7 @@ import type { Metadata } from "next";
 import { Cormorant_Garamond, DM_Sans, Great_Vibes, Playfair_Display } from "next/font/google";
 
 import { LayoutSwitcher } from "@/components/layout/layout-switcher";
+import { MetaPixel } from "@/components/analytics/meta-pixel";
 import { STORE_SEO, buildDefaultOpenGraph, getSiteUrl } from "@/lib/seo/site";
 import { AuthProvider } from "@/providers/auth-provider";
 import { QueryProvider } from "@/providers/query-provider";
@@ -65,6 +66,7 @@ export default function RootLayout({
       className={`${dmSans.variable} ${playfair.variable} ${cormorant.variable} ${greatVibes.variable} min-h-dvh antialiased`}
     >
       <body className="flex min-h-dvh flex-col bg-background text-foreground">
+        <MetaPixel />
         <QueryProvider>
           <AuthProvider>
             <ToastProvider>
