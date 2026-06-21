@@ -17,10 +17,11 @@ import { CheckoutOrderSummary } from "./checkout-order-summary";
 import { useAuth } from "@/hooks/use-auth";
 import { useRevalidateCart } from "@/hooks/use-revalidate-cart";
 import { isAdminEmail } from "@/lib/auth/admin";
+import { trackMetaPurchase } from "@/lib/meta-pixel";
 import { queryKeys } from "@/lib/queries/keys";
 import { isValidPkPhone, normalizePkPhone } from "@/lib/validation/phone";
 import { useToast } from "@/providers/toast-provider";
-import { useCartStore } from "@/stores/cart-store";
+import { useCartStore, selectCartSubtotal } from "@/stores/cart-store";
 
 const checkoutSchema = z.object({
   name: z.string().min(2, "Name is required"),
@@ -242,6 +243,8 @@ export function CheckoutForm({ onCompletingChange }: CheckoutFormProps) {
       ]);
 
       onCompletingChange?.(true);
+
+      trackMetaPurchase(data.orderId, freshItems, selectCartSubtotal(useCartStore.getState()));
 
       const trackParams = new URLSearchParams({
         orderId: data.orderId,

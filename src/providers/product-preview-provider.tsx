@@ -12,6 +12,7 @@ import {
 import { createPortal } from "react-dom";
 
 import { ProductQuickPreview } from "@/components/shop/product-quick-preview";
+import { trackMetaViewContent } from "@/lib/meta-pixel";
 import { queryKeys } from "@/lib/queries/keys";
 import { prefetchProductById } from "@/lib/queries/prefetch-product";
 import { fetchProductWithVariantsById } from "@/lib/queries/products";
@@ -64,6 +65,7 @@ export function ProductPreviewProvider({ children }: { children: ReactNode }) {
         initialModelId: options?.initialModelId,
       });
       setIsOpen(true);
+      trackMetaViewContent(product);
     },
     [queryClient],
   );
