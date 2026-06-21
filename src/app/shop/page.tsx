@@ -57,7 +57,12 @@ export default async function ShopPage({ searchParams }: ShopPageProps) {
 
   return (
     <CatalogHydration state={dehydratedState}>
-      <ShopContent skeletonCount={products.length} srTitle={SHOP_SEO.srTitle} />
+      <ShopContent
+        skeletonCount={products.length}
+        initialProducts={products}
+        theme={params.theme}
+        srTitle={SHOP_SEO.srTitle}
+      />
     </CatalogHydration>
   );
 }

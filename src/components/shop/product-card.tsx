@@ -68,9 +68,9 @@ export function ProductCard({ product, modelId, priority = false }: ProductCardP
 
   useEffect(() => {
     const next = resolveListingDisplayColor(product, undefined, modelId);
-    setSelectedColorId(next.colorId);
-    setDisplayColor(next);
-  }, [product.id, modelId]);
+    setSelectedColorId((current) => (current === next.colorId ? current : next.colorId));
+    setDisplayColor((current) => (current.colorId === next.colorId ? current : next));
+  }, [product, modelId]);
 
   useEffect(() => {
     othersPreloadedRef.current = false;
@@ -105,31 +105,26 @@ export function ProductCard({ product, modelId, priority = false }: ProductCardP
 
   const themeLine = displayColor.themeLine?.trim();
 
-  const preloadOtherColors = useCallback(() => {
+  const preloadAllColorImages = useCallback(() => {
     if (othersPreloadedRef.current) {
       return;
     }
     othersPreloadedRef.current = true;
 
-    const run = () => {
-      for (const color of colors) {
-        if (color.colorId === initialColor.colorId) {
-          continue;
-        }
-        preloadListingImage(getColorCardImage(product, color));
-      }
-    };
-
-    if (typeof requestIdleCallback !== "undefined") {
-      requestIdleCallback(run, { timeout: 2500 });
-    } else {
-      window.setTimeout(run, 400);
+    for (const color of colors) {
+      preloadListingImage(getColorCardImage(product, color));
     }
-  }, [colors, initialColor.colorId, product]);
+  }, [colors, product]);
+
+  useEffect(() => {
+    if (shouldLoadImage && isMultiColor) {
+      preloadAllColorImages();
+    }
+  }, [shouldLoadImage, isMultiColor, preloadAllColorImages]);
 
   const handlePrimaryReady = useCallback(() => {
-    preloadOtherColors();
-  }, [preloadOtherColors]);
+    preloadAllColorImages();
+  }, [preloadAllColorImages]);
 
   const handlePrefetchPreview = () => {
     void prefetchProductById(queryClient, product.id);
@@ -166,9 +161,9 @@ export function ProductCard({ product, modelId, priority = false }: ProductCardP
             title={colorSoldOut ? `${color.colorName} — sold out` : color.colorName}
             aria-label={`${color.colorName}${isActive ? " (selected)" : ""}`}
             onPointerEnter={() => preloadListingImage(getColorCardImage(product, color))}
+            onPointerDown={() => preloadListingImage(getColorCardImage(product, color))}
             onTouchStart={() => preloadListingImage(getColorCardImage(product, color))}
             onClick={() => {
-              preloadListingImage(getColorCardImage(product, color));
               setSelectedColorId(color.colorId);
             }}
             className={cn(
@@ -212,6 +207,7 @@ export function ProductCard({ product, modelId, priority = false }: ProductCardP
               sizes="(max-width: 640px) 50vw, (max-width: 1024px) 33vw, 25vw"
               priority={priority}
               enabled={shouldLoadImage}
+              smoothSwap
               soldOut={isProductSoldOut(product)}
               onReady={handlePrimaryReady}
               imageClassName="[@media(hover:hover)]:transition-transform [@media(hover:hover)]:duration-500 [@media(hover:hover)]:group-hover:scale-[1.03]"

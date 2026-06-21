@@ -1,6 +1,6 @@
 "use client";
 
-import { useEffect, useState, type RefObject } from "react";
+import { useEffect, useLayoutEffect, useState, type RefObject } from "react";
 
 type UseInViewOptions = {
   rootMargin?: string;
@@ -15,7 +15,7 @@ export function useInView(
 ): boolean {
   const [inView, setInView] = useState(immediate);
 
-  useEffect(() => {
+  useLayoutEffect(() => {
     if (immediate) {
       setInView(true);
       return;
@@ -23,6 +23,17 @@ export function useInView(
 
     const element = ref.current;
     if (!element) {
+      return;
+    }
+
+    const marginMatch = /^(-?\d+(?:\.\d+)?)px/.exec(rootMargin);
+    const marginPx = marginMatch ? Number(marginMatch[1]) : 280;
+    const rect = element.getBoundingClientRect();
+    const verticallyVisible =
+      rect.top < window.innerHeight + marginPx && rect.bottom > -marginPx;
+
+    if (verticallyVisible) {
+      setInView(true);
       return;
     }
 

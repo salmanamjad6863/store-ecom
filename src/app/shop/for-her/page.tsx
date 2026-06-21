@@ -38,6 +38,7 @@ export default async function ForHerShopPage() {
       <CatalogHydration state={dehydratedState}>
         <ShopContent
           skeletonCount={products.length}
+          initialProducts={products}
           srTitle="iPhone Covers for Women"
           heading={{
             eyebrow: "For Her",

@@ -16,13 +16,32 @@ function isImageCached(src: string): boolean {
   return probe.complete && probe.naturalWidth > 0;
 }
 
+function getCachedImageState(
+  src: string | undefined,
+  enabled: boolean,
+): { displaySrc: string | null; status: GatedImageStatus } {
+  if (!enabled || !src) {
+    return { displaySrc: null, status: "loading" };
+  }
+
+  if (typeof window !== "undefined" && isImageCached(src)) {
+    return { displaySrc: src, status: "ready" };
+  }
+
+  return { displaySrc: null, status: "loading" };
+}
+
 /** Preload gate — image is shown only after the browser has fully fetched/decoded `src`. */
 export function useGatedImageSrc(
   src: string | undefined,
   { enabled = true, keepPreviousWhileLoading = false }: UseGatedImageSrcOptions = {},
 ): { displaySrc: string | null; status: GatedImageStatus } {
-  const [displaySrc, setDisplaySrc] = useState<string | null>(null);
-  const [status, setStatus] = useState<GatedImageStatus>("loading");
+  const [displaySrc, setDisplaySrc] = useState<string | null>(
+    () => getCachedImageState(src, enabled).displaySrc,
+  );
+  const [status, setStatus] = useState<GatedImageStatus>(
+    () => getCachedImageState(src, enabled).status,
+  );
 
   useEffect(() => {
     if (!enabled || !src) {
@@ -92,7 +111,9 @@ export function useImageLoaded(src: string | undefined): {
   markError: () => void;
 } {
   const imgRef = useRef<HTMLImageElement | null>(null);
-  const [isLoaded, setIsLoaded] = useState(false);
+  const [isLoaded, setIsLoaded] = useState(
+    () => Boolean(src && typeof window !== "undefined" && isImageCached(src)),
+  );
   const [hasError, setHasError] = useState(false);
 
   useEffect(() => {

@@ -4,8 +4,9 @@ import Link from "next/link";
 import { usePathname, useSearchParams } from "next/navigation";
 import { useMemo } from "react";
 
+import { useNavigateShopFilter } from "@/hooks/use-navigate-shop-filter";
 import { usePhoneModels } from "@/hooks/use-phone-models";
-import { buildShopModelHref, getActiveModelIdFromPath } from "@/lib/seo/collections";
+import { getActiveModelIdFromPath } from "@/lib/seo/collections";
 import { cn } from "@/lib/utils/cn";
 
 type ModelFiltersProps = {
@@ -15,17 +16,18 @@ type ModelFiltersProps = {
 export function ModelFilters({ modelIds }: ModelFiltersProps) {
   const pathname = usePathname();
   const searchParams = useSearchParams();
-  const activeModelId = getActiveModelIdFromPath(pathname, searchParams.get("model"));
-  const activeTheme = searchParams.get("theme");
+  const routeModelId = getActiveModelIdFromPath(pathname, searchParams.get("model"));
+  const { optimisticFilter, handleFilterClick, buildHref } = useNavigateShopFilter();
   const { data: phoneModels = [] } = usePhoneModels();
+
+  const activeModelId =
+    optimisticFilter !== null ? optimisticFilter.modelId : routeModelId;
 
   const filterModels = useMemo(
     () =>
       phoneModels.filter((model) => modelIds.includes(model.id)),
     [phoneModels, modelIds],
   );
-
-  const buildHref = (modelId?: string) => buildShopModelHref(modelId, activeTheme);
 
   if (filterModels.length === 0) {
     return null;
@@ -47,6 +49,7 @@ export function ModelFilters({ modelIds }: ModelFiltersProps) {
             <Link
               key={chipKey}
               href={buildHref(chip.value)}
+              onClick={handleFilterClick(chip.value)}
               className={cn(
                 "shrink-0 px-3 py-1.5 text-[10px] font-medium uppercase tracking-[0.15em] transition-colors sm:px-3.5 sm:py-2 sm:text-[11px]",
                 isActive
