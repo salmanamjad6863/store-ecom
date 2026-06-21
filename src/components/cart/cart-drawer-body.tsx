@@ -7,6 +7,8 @@ import { EmptyState } from "@/components/ui/empty-state";
 import { Spinner } from "@/components/ui/spinner";
 import { useCart } from "@/hooks/use-cart";
 import { useRevalidateCart } from "@/hooks/use-revalidate-cart";
+import { getCartImagePreloadUrl } from "@/lib/utils/listing-image-url";
+import { preloadImage } from "@/lib/utils/preload-image";
 import { useProductPreview } from "@/providers/product-preview-provider";
 import { useToast } from "@/providers/toast-provider";
 import { getCartLineKey } from "@/types/cart";
@@ -25,6 +27,14 @@ export function CartDrawerBody({ onClose }: CartDrawerBodyProps) {
   const { openPreviewFromCartItem } = useProductPreview();
   const { toast } = useToast();
   const subtotal = getSubtotal();
+
+  useEffect(() => {
+    for (const item of items) {
+      if (item.image) {
+        preloadImage(getCartImagePreloadUrl(item.image));
+      }
+    }
+  }, [items]);
 
   useEffect(() => {
     if (items.length === 0) {
@@ -84,7 +94,7 @@ export function CartDrawerBody({ onClose }: CartDrawerBodyProps) {
         </ul>
       </div>
 
-      <CartDrawerFooter subtotal={subtotal} itemCount={itemCount} onClose={onClose} />
+      <CartDrawerFooter subtotal={subtotal} itemCount={itemCount} />
     </div>
   );
 }

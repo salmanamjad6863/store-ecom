@@ -7,6 +7,7 @@ import { Button } from "@/components/ui/button";
 import { OrderPricingSummary } from "@/components/orders/order-pricing-summary";
 import { Text } from "@/components/ui/text";
 import { useRevalidateCart } from "@/hooks/use-revalidate-cart";
+import { markCartRevalidated } from "@/lib/cart/revalidate-stamp";
 import { getOrderPricing } from "@/lib/orders/shipping";
 import { scrollToTop } from "@/lib/utils/scroll-lock";
 import { useToast } from "@/providers/toast-provider";
@@ -15,10 +16,9 @@ import { useCartStore } from "@/stores/cart-store";
 type CartDrawerFooterProps = {
   subtotal: number;
   itemCount: number;
-  onClose: () => void;
 };
 
-export function CartDrawerFooter({ subtotal, itemCount, onClose }: CartDrawerFooterProps) {
+export function CartDrawerFooter({ subtotal, itemCount }: CartDrawerFooterProps) {
   const router = useRouter();
   const { revalidate } = useRevalidateCart();
   const { toast } = useToast();
@@ -42,8 +42,8 @@ export function CartDrawerFooter({ subtotal, itemCount, onClose }: CartDrawerFoo
         return;
       }
 
-      onClose();
       scrollToTop();
+      markCartRevalidated();
       router.push("/checkout");
     } finally {
       setIsCheckingOut(false);

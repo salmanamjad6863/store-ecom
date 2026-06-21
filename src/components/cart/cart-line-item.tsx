@@ -1,12 +1,13 @@
 "use client";
 
-import Image from "next/image";
 import { Minus, Plus, Trash2 } from "lucide-react";
 
 import { Price } from "@/components/ui/price";
 import { Text } from "@/components/ui/text";
 import { cn } from "@/lib/utils/cn";
 import { getCartLineKey, type CartItem } from "@/types/cart";
+
+import { CartThumbnailImage } from "./cart-thumbnail-image";
 
 type CartLineItemProps = {
   item: CartItem;
@@ -34,13 +35,7 @@ export function CartLineItem({
         aria-label={`Edit ${item.name}`}
       >
         {item.image ? (
-          <Image
-            src={item.image}
-            alt={item.name}
-            fill
-            sizes="84px"
-            className="object-contain p-1"
-          />
+          <CartThumbnailImage src={item.image} alt={item.name} />
         ) : (
           <div className="flex h-full items-center justify-center text-[10px] text-muted">
             No image
