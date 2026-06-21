@@ -110,7 +110,9 @@ export default async function ShopSlugPage({ params, searchParams }: ShopSlugPag
         <CatalogHydration state={dehydratedState}>
           <ShopContent
             skeletonCount={products.length}
+            initialProducts={products}
             fixedModelId={model.id}
+            theme={query.theme}
             srTitle={`${model.name} Covers`}
             heading={{
               eyebrow: model.name,

@@ -1,15 +1,14 @@
 "use client";
 
-import { Suspense, useMemo, useState } from "react";
-import { usePathname, useSearchParams } from "next/navigation";
+import { useMemo, useState } from "react";
+import { usePathname } from "next/navigation";
 
 import { SectionHeading } from "@/components/ui/section-heading";
 import { EmptyState } from "@/components/ui/empty-state";
-import { useProductSkeletonCount } from "@/hooks/use-product-skeleton-count";
-import { useProducts } from "@/hooks/use-products";
+import { useShopCatalog } from "@/hooks/use-shop-catalog";
 import { filterAndSortProducts } from "@/lib/shop/filter-products";
 import { getActiveModelIdFromPath } from "@/lib/seo/collections";
-import { cn } from "@/lib/utils/cn";
+import type { Product } from "@/types/product";
 
 import { ProductGrid } from "./product-grid";
 import { ProductGridSkeleton } from "./product-grid-skeleton";
@@ -24,7 +23,9 @@ export type ShopPageHeading = {
 
 type ShopContentInnerProps = {
   skeletonCount?: number;
+  initialProducts?: Product[];
   fixedModelId?: string;
+  theme?: string;
   heading?: ShopPageHeading;
   /** Screen-reader H1 for SEO — does not change visible layout. */
   srTitle?: string;
@@ -32,31 +33,34 @@ type ShopContentInnerProps = {
 
 function ShopContentInner({
   skeletonCount: skeletonCountHint,
+  initialProducts,
   fixedModelId,
+  theme,
   heading,
   srTitle,
 }: ShopContentInnerProps) {
   const pathname = usePathname();
-  const searchParams = useSearchParams();
-  const queryModelId = searchParams.get("model") ?? undefined;
-  const theme = searchParams.get("theme") ?? undefined;
-  const modelId = fixedModelId ?? getActiveModelIdFromPath(pathname, queryModelId);
+  const routeModelId = fixedModelId ?? getActiveModelIdFromPath(pathname);
   const [search, setSearch] = useState("");
   const [sort, setSort] = useState<ShopSort>("newest");
 
-  const { data: products, isPending, isError, isFetching } = useProducts({ modelId, theme });
-  const skeletonCount = useProductSkeletonCount({
-    products,
+  const {
     modelId,
-    theme,
-    fallbackCount: skeletonCountHint,
+    products: resolvedProducts,
+    showSkeleton,
+    isError,
+    skeletonCount,
+  } = useShopCatalog({
+    routeModelId,
+    routeTheme: theme,
+    initialProducts,
+    skeletonCountHint,
   });
-  const displayedProducts = useMemo(
-    () => filterAndSortProducts(products ?? [], search, sort),
-    [products, search, sort],
-  );
 
-  const showSkeleton = isPending && !products;
+  const displayedProducts = useMemo(
+    () => filterAndSortProducts(resolvedProducts ?? [], search, sort),
+    [resolvedProducts, search, sort],
+  );
 
   const resolvedHeading = heading ?? {
     eyebrow: "The Collection",
@@ -100,18 +104,11 @@ function ShopContentInner({
             />
           ) : null}
 
-          {!showSkeleton && !isError && products && products.length > 0 && displayedProducts.length > 0 ? (
-            <div
-              className={cn(
-                "transition-opacity duration-200",
-                isFetching && products && "opacity-60",
-              )}
-            >
-              <ProductGrid products={displayedProducts} modelId={modelId} />
-            </div>
+          {!showSkeleton && !isError && resolvedProducts && resolvedProducts.length > 0 && displayedProducts.length > 0 ? (
+            <ProductGrid products={displayedProducts} modelId={modelId} />
           ) : null}
 
-          {!showSkeleton && !isError && products && products.length > 0 && displayedProducts.length === 0 ? (
+          {!showSkeleton && !isError && resolvedProducts && resolvedProducts.length > 0 && displayedProducts.length === 0 ? (
             <EmptyState
               title="Nothing matched your search"
               description="Try another keyword or browse all pieces in the collection."
@@ -128,7 +125,7 @@ function ShopContentInner({
             />
           ) : null}
 
-          {!showSkeleton && !isError && products?.length === 0 ? (
+          {!showSkeleton && !isError && resolvedProducts?.length === 0 ? (
             <EmptyState
               title="The drop is coming soon"
               description={
@@ -148,19 +145,5 @@ function ShopContentInner({
 type ShopContentProps = ShopContentInnerProps;
 
 export function ShopContent(props: ShopContentProps) {
-  return (
-    <Suspense
-      fallback={
-        <div className="bg-soft px-4 py-10 sm:px-6 lg:px-10">
-          <div className="mx-auto max-w-7xl">
-            {props.skeletonCount && props.skeletonCount > 0 ? (
-              <ProductGridSkeleton count={props.skeletonCount} />
-            ) : null}
-          </div>
-        </div>
-      }
-    >
-      <ShopContentInner {...props} />
-    </Suspense>
-  );
+  return <ShopContentInner {...props} />;
 }

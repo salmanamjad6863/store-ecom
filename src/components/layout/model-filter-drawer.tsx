@@ -6,10 +6,11 @@ import { usePathname, useSearchParams } from "next/navigation";
 import { useEffect, useMemo, useState } from "react";
 
 import { Text } from "@/components/ui/text";
+import { useNavigateShopFilter } from "@/hooks/use-navigate-shop-filter";
 import { useProducts } from "@/hooks/use-products";
 import { usePhoneModels } from "@/hooks/use-phone-models";
 import { deriveShopModelIdSet } from "@/lib/shop/catalog-derived";
-import { buildShopModelHref, getActiveModelIdFromPath } from "@/lib/seo/collections";
+import { getActiveModelIdFromPath } from "@/lib/seo/collections";
 import {
   getPhoneModelVariantLabel,
   groupPhoneModelsByGeneration,
@@ -24,14 +25,23 @@ const OPEN_DELAY_MS = 60;
 export function ModelFilterDrawer() {
   const pathname = usePathname();
   const searchParams = useSearchParams();
-  const activeModelId = getActiveModelIdFromPath(pathname, searchParams.get("model"));
-  const activeTheme = searchParams.get("theme");
+  const routeModelId = getActiveModelIdFromPath(pathname, searchParams.get("model"));
+  const {
+    isNavigating,
+    optimisticFilter,
+    handleFilterClick,
+    prefetchFilter,
+    buildHref,
+  } = useNavigateShopFilter();
   const { isOpen, closeDrawer } = useModelFilterDrawer();
   const { data: phoneModels = [] } = usePhoneModels();
   const { data: catalogProducts = [] } = useProducts();
   const [present, setPresent] = useState(false);
   const [visible, setVisible] = useState(false);
   const [openGenerations, setOpenGenerations] = useState<Set<string>>(new Set());
+
+  const activeModelId =
+    optimisticFilter !== null ? optimisticFilter.modelId : routeModelId;
 
   const shopModelIdSet = useMemo(
     () => deriveShopModelIdSet(catalogProducts),
@@ -103,6 +113,20 @@ export function ModelFilterDrawer() {
     };
   }, [present, closeDrawer]);
 
+  useEffect(() => {
+    if (!isOpen) {
+      return;
+    }
+
+    prefetchFilter(undefined);
+
+    for (const model of phoneModels) {
+      if (shopModelIdSet.has(model.id)) {
+        prefetchFilter(model.id);
+      }
+    }
+  }, [isOpen, phoneModels, prefetchFilter, shopModelIdSet]);
+
   const toggleGeneration = (generation: string) => {
     setOpenGenerations((current) => {
       const next = new Set(current);
@@ -115,11 +139,14 @@ export function ModelFilterDrawer() {
     });
   };
 
+  const selectFilter = (modelId?: string) => {
+    closeDrawer();
+    handleFilterClick(modelId)({ preventDefault: () => undefined } as React.MouseEvent<HTMLAnchorElement>);
+  };
+
   if (!present) {
     return null;
   }
-
-  const preserveTheme = pathname === "/shop" || pathname.endsWith("-cases") ? activeTheme : null;
 
   return (
     <div className="fixed inset-0 z-[55]" role="presentation">
@@ -138,6 +165,7 @@ export function ModelFilterDrawer() {
         role="dialog"
         aria-modal="true"
         aria-label="Filter by iPhone model"
+        aria-busy={isNavigating}
         className={cn(
           "absolute inset-y-0 left-0 flex w-full max-w-[min(100vw,340px)] flex-col overflow-hidden bg-cream shadow-2xl will-change-transform",
           "transition-transform duration-[550ms] ease-[cubic-bezier(0.16,1,0.3,1)]",
@@ -164,8 +192,12 @@ export function ModelFilterDrawer() {
 
         <div className="min-h-0 flex-1 overflow-y-auto px-3 py-4 sm:px-4">
           <Link
-            href={buildShopModelHref(undefined, preserveTheme)}
-            onClick={closeDrawer}
+            href={buildHref(undefined)}
+            onClick={(event) => {
+              closeDrawer();
+              handleFilterClick(undefined)(event);
+            }}
+            onPointerEnter={() => prefetchFilter(undefined)}
             className={cn(
               "mb-4 flex w-full items-center rounded-xl border px-4 py-3 text-sm font-medium transition-colors",
               !activeModelId
@@ -236,8 +268,12 @@ export function ModelFilterDrawer() {
                               <li key={model.id}>
                                 {hasCases ? (
                                   <Link
-                                    href={buildShopModelHref(model.id, preserveTheme)}
-                                    onClick={closeDrawer}
+                                    href={buildHref(model.id)}
+                                    onClick={(event) => {
+                                      closeDrawer();
+                                      handleFilterClick(model.id)(event);
+                                    }}
+                                    onPointerEnter={() => prefetchFilter(model.id)}
                                     className={cn(
                                       "block rounded-lg px-3 py-2.5 text-sm transition-colors",
                                       isActive

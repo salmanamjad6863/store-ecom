@@ -55,6 +55,20 @@ export function getActiveModelIdFromPath(pathname: string, queryModelId?: string
   return queryModelId ?? undefined;
 }
 
+/** Shop listing routes where model-filter navigation should preserve scroll. */
+export function isShopCatalogListingPath(pathname: string): boolean {
+  if (pathname === "/shop" || pathname === FOR_HER_PATH) {
+    return true;
+  }
+
+  const slug = pathname.split("/").pop();
+  if (!slug || !pathname.startsWith("/shop/")) {
+    return false;
+  }
+
+  return parseModelCollectionSlug(slug) !== null;
+}
+
 export function buildModelCollectionTitle(modelName: string): string {
   return `${modelName} Covers in Pakistan`;
 }
