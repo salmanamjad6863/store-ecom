@@ -51,7 +51,7 @@ export function designToProductInput(
     colorName: entry.colorName.trim(),
     colorHex: entry.colorHex,
     themeLine: entry.themeLine.trim() || undefined,
-    images: entry.images,
+    images: entry.images.slice(0, 1),
   }));
 
   const variants: VariantInput[] = design.useVariants
@@ -64,7 +64,7 @@ export function designToProductInput(
             colorId,
             modelId,
             modelName: model?.name ?? modelId,
-            images: entry.images,
+            images: entry.images.slice(0, 1),
             quantity: entry.modelQuantities[modelId] ?? 0,
           };
         });
@@ -98,7 +98,7 @@ export function designToProductInput(
     variants,
     defaultModelId,
     defaultColorId,
-    images: featuredEntry?.images ?? colors[0]?.images ?? [],
+    images: (featuredEntry?.images ?? colors[0]?.images ?? []).slice(0, 1),
   };
 }
 

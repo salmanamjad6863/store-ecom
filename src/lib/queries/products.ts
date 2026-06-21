@@ -12,6 +12,12 @@ import {
   type QueryConstraint,
 } from "firebase/firestore";
 
+import { cleanupCloudinaryImages } from "@/lib/cloudinary/cleanup-client";
+import {
+  collectProductInputImageUrls,
+  collectProductWithVariantsImageUrls,
+  diffOrphanedImageUrls,
+} from "@/lib/cloudinary/product-images";
 import { COLLECTIONS } from "@/lib/firebase/collections";
 import { getClientFirestore } from "@/lib/firebase/client";
 import {
@@ -396,18 +402,35 @@ export class DeleteProductError extends Error {
 }
 
 export async function deleteProduct(id: string): Promise<void> {
-  const db = getClientFirestore();
-  const snapshot = await getDoc(doc(db, COLLECTIONS.products, id));
+  const existing = await fetchProductWithVariantsById(id);
 
-  if (!snapshot.exists()) {
+  if (!existing) {
     throw new DeleteProductError("Product not found or already deleted.");
   }
 
+  const urls = [...collectProductWithVariantsImageUrls(existing)];
+  const db = getClientFirestore();
+
   await deleteAllVariants(id);
   await deleteDoc(doc(db, COLLECTIONS.products, id));
+
+  if (urls.length > 0) {
+    try {
+      await cleanupCloudinaryImages(urls);
+    } catch (error) {
+      console.error("[cloudinary] Failed to delete images after product delete:", error);
+    }
+  }
 }
 
 export async function updateProduct(id: string, input: ProductInput): Promise<void> {
+  const existing = await fetchProductWithVariantsById(id);
+
+  if (!existing) {
+    throw new Error("Product not found.");
+  }
+
+  const previousUrls = collectProductWithVariantsImageUrls(existing);
   const db = getClientFirestore();
   const saved = await finalizeProductVariants(id, input);
   const defaultVariantId =
@@ -426,4 +449,15 @@ export async function updateProduct(id: string, input: ProductInput): Promise<vo
       updatedAt: serverTimestamp(),
     }),
   );
+
+  const nextUrls = collectProductInputImageUrls(input);
+  const orphaned = diffOrphanedImageUrls(previousUrls, nextUrls);
+
+  if (orphaned.length > 0) {
+    try {
+      await cleanupCloudinaryImages(orphaned);
+    } catch (error) {
+      console.error("[cloudinary] Failed to delete orphaned images after save:", error);
+    }
+  }
 }
