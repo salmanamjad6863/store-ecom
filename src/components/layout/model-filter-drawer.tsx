@@ -43,11 +43,22 @@ export function ModelFilterDrawer() {
     [phoneModels],
   );
 
+  const activeGeneration = useMemo(() => {
+    if (!activeModelId) {
+      return null;
+    }
+
+    return (
+      groups.find((group) => group.models.some((model) => model.id === activeModelId))
+        ?.generation ?? null
+    );
+  }, [groups, activeModelId]);
+
   useEffect(() => {
     if (isOpen) {
       setPresent(true);
       setVisible(false);
-      setOpenGenerations(new Set());
+      setOpenGenerations(activeGeneration ? new Set([activeGeneration]) : new Set());
 
       const openTimer = window.setTimeout(() => setVisible(true), OPEN_DELAY_MS);
       return () => window.clearTimeout(openTimer);
@@ -56,7 +67,21 @@ export function ModelFilterDrawer() {
     setVisible(false);
     const closeTimer = window.setTimeout(() => setPresent(false), PANEL_ANIMATION_MS + 40);
     return () => window.clearTimeout(closeTimer);
-  }, [isOpen]);
+  }, [isOpen, activeGeneration]);
+
+  useEffect(() => {
+    if (!isOpen || !activeGeneration) {
+      return;
+    }
+
+    setOpenGenerations((current) => {
+      if (current.has(activeGeneration)) {
+        return current;
+      }
+
+      return new Set([...current, activeGeneration]);
+    });
+  }, [isOpen, activeGeneration]);
 
   useEffect(() => {
     if (!present) {
