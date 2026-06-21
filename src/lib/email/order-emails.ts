@@ -1,5 +1,5 @@
 import { env } from "@/lib/env";
-import { isSmtpConfigured, serverEnv } from "@/lib/env.server";
+import { getOrderNotificationEmails, isSmtpConfigured, serverEnv } from "@/lib/env.server";
 import { resolveOrderItemDisplay } from "@/lib/orders/format-order-item-display";
 import { getSiteUrl } from "@/lib/seo/site";
 import { formatCurrency } from "@/lib/utils/format";
@@ -224,6 +224,145 @@ function buildItemsText(order: Order): string[] {
     );
     const details = variant ? ` (${variant})` : "";
     return `- ${formatOrderItemTitle(item)}${details} × ${item.quantity}: ${lineTotal}`;
+  });
+}
+
+function getAdminOrderUrl(orderId: string): string {
+  return getSiteUrl(`/admin/orders/${orderId}`);
+}
+
+function buildAdminNewOrderEmailHtml(order: Order): string {
+  const { code, locale } = env.currency;
+  const storeName = escapeHtml(env.storeName);
+  const adminUrl = getAdminOrderUrl(order.id);
+  const customerName = escapeHtml(order.customer.name);
+  const customerEmail = escapeHtml(order.customer.email);
+
+  return `<!DOCTYPE html>
+<html lang="en">
+  <head>
+    <meta charset="utf-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1" />
+    <title>New order ${escapeHtml(order.orderNumber)}</title>
+  </head>
+  <body style="margin:0;padding:0;background:${BRAND.cream};font-family:-apple-system,BlinkMacSystemFont,'Segoe UI',Roboto,Helvetica,Arial,sans-serif;color:${BRAND.deep};">
+    <table role="presentation" width="100%" cellspacing="0" cellpadding="0" style="background:${BRAND.cream};">
+      <tr>
+        <td align="center" style="padding:32px 16px 48px;">
+          <table role="presentation" width="100%" cellspacing="0" cellpadding="0" style="max-width:560px;background:${BRAND.white};border-radius:20px;overflow:hidden;border:1px solid ${BRAND.soft};box-shadow:0 18px 50px rgba(43,26,20,0.08);">
+            <tr>
+              <td style="padding:36px 32px 28px;background:linear-gradient(135deg, ${BRAND.deep} 0%, #3d2417 55%, ${BRAND.warm} 100%);text-align:center;">
+                <p style="margin:0 0 8px;font-family:Georgia,'Times New Roman',serif;font-size:30px;line-height:1.1;color:${BRAND.cream};">${storeName}</p>
+                <p style="margin:0;font-size:13px;letter-spacing:0.18em;text-transform:uppercase;color:${BRAND.blush};">New order received</p>
+              </td>
+            </tr>
+            <tr>
+              <td style="padding:32px 32px 8px;">
+                <div style="margin:0 0 24px;padding:14px 18px;background:${BRAND.soft};border:1px solid ${BRAND.blush};border-radius:12px;text-align:center;">
+                  <p style="margin:0;font-size:14px;font-weight:600;letter-spacing:0.04em;text-transform:uppercase;color:${BRAND.rose};">Review in admin</p>
+                </div>
+                <p style="margin:0 0 16px;font-size:16px;line-height:1.6;color:${BRAND.deep};">Hi team,</p>
+                <p style="margin:0 0 28px;font-size:15px;line-height:1.7;color:${BRAND.warm};">A customer just placed a new order. Accept it from the admin panel when you are ready to prepare delivery.</p>
+
+                <div style="margin:0 0 28px;padding:20px;background:${BRAND.cream};border-radius:14px;border:1px solid ${BRAND.soft};">
+                  <p style="margin:0 0 4px;font-size:12px;letter-spacing:0.12em;text-transform:uppercase;color:${BRAND.warm};">Order number</p>
+                  <p style="margin:0;font-size:20px;font-weight:700;font-family:ui-monospace,SFMono-Regular,Menlo,monospace;color:${BRAND.deep};">${escapeHtml(order.orderNumber)}</p>
+                  <p style="margin:14px 0 0;font-size:12px;letter-spacing:0.12em;text-transform:uppercase;color:${BRAND.warm};">Order ID</p>
+                  <p style="margin:0;font-size:13px;font-family:ui-monospace,SFMono-Regular,Menlo,monospace;color:${BRAND.deep};word-break:break-all;">${escapeHtml(order.id)}</p>
+                  <p style="margin:12px 0 0;font-size:13px;color:${BRAND.warm};">Status</p>
+                  <p style="margin:0;font-size:14px;font-weight:600;color:${BRAND.deep};text-transform:capitalize;">${escapeHtml(order.status)}</p>
+                </div>
+
+                <p style="margin:0 0 12px;font-size:12px;letter-spacing:0.14em;text-transform:uppercase;color:${BRAND.warm};">Items</p>
+                <table role="presentation" width="100%" cellspacing="0" cellpadding="0" style="margin-bottom:20px;">
+                  <tbody>${buildItemsHtml(order)}</tbody>
+                </table>
+
+                ${buildPricingHtml(order, code, locale)}
+
+                <p style="margin:0 0 10px;font-size:12px;letter-spacing:0.14em;text-transform:uppercase;color:${BRAND.warm};">Customer</p>
+                <p style="margin:0 0 28px;font-size:14px;line-height:1.7;color:${BRAND.deep};">
+                  ${customerName}<br />
+                  ${customerEmail}<br />
+                  ${escapeHtml(order.customer.phone)}<br />
+                  ${escapeHtml(order.customer.addressLine1)}<br />
+                  ${escapeHtml(order.customer.city)}${order.customer.postalCode ? `, ${escapeHtml(order.customer.postalCode)}` : ""}
+                </p>
+
+                <table role="presentation" cellspacing="0" cellpadding="0" align="center">
+                  <tr>
+                    <td style="border-radius:999px;background:${BRAND.rose};">
+                      <a href="${adminUrl}" style="display:inline-block;padding:14px 28px;font-size:14px;font-weight:600;color:${BRAND.white};text-decoration:none;letter-spacing:0.02em;">Open in admin</a>
+                    </td>
+                  </tr>
+                </table>
+              </td>
+            </tr>
+            <tr>
+              <td style="padding:20px 32px 28px;background:${BRAND.cream};border-top:1px solid ${BRAND.soft};text-align:center;">
+                <p style="margin:0;font-size:12px;line-height:1.6;color:${BRAND.warm};">${storeName} admin notification</p>
+              </td>
+            </tr>
+          </table>
+        </td>
+      </tr>
+    </table>
+  </body>
+</html>`;
+}
+
+export async function sendAdminNewOrderEmail(order: Order): Promise<void> {
+  if (!isSmtpConfigured()) {
+    console.warn("[email] SMTP is not configured — skipping admin new order email.");
+    return;
+  }
+
+  const adminEmails = getOrderNotificationEmails();
+
+  if (adminEmails.length === 0) {
+    console.warn("[email] No order notification email configured — skipping admin new order email.");
+    return;
+  }
+
+  const transporter = getMailTransporter();
+
+  if (!transporter) {
+    return;
+  }
+
+  const storeName = env.storeName;
+  const subject = `${storeName} — New order ${order.orderNumber}`;
+  const html = buildAdminNewOrderEmailHtml(order);
+  const text = [
+    "New order received.",
+    "",
+    `Order number: ${order.orderNumber}`,
+    `Order ID: ${order.id}`,
+    `Status: ${order.status}`,
+    "",
+    "Customer:",
+    order.customer.name,
+    order.customer.email,
+    order.customer.phone,
+    order.customer.addressLine1,
+    `${order.customer.city}${order.customer.postalCode ? `, ${order.customer.postalCode}` : ""}`,
+    "",
+    "Items:",
+    ...buildItemsText(order),
+    "",
+    ...buildPricingText(order),
+    "",
+    `Open in admin: ${getAdminOrderUrl(order.id)}`,
+    "",
+    "Payment: Cash on delivery",
+  ].join("\n");
+
+  await transporter.sendMail({
+    from: serverEnv.smtp.from,
+    to: adminEmails.join(", "),
+    subject,
+    text,
+    html,
   });
 }
 
