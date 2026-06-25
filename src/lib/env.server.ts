@@ -2,34 +2,39 @@ import { z } from "zod";
 
 import { env } from "@/lib/env";
 
-/** Gmail SMTP — host/port are fixed; credentials come from env. */
-const SMTP_HOST = "smtp.gmail.com";
-const SMTP_PORT = 587;
-
 const serverEnvSchema = z.object({
+  SMTP_HOST: z.string().optional(),
+  SMTP_PORT: z.coerce.number().optional(),
   SMTP_USER: z.string().optional(),
   SMTP_PASS: z.string().optional(),
+  SMTP_FROM: z.string().optional(),
   NEXT_PUBLIC_APP_URL: z.string().optional(),
 });
 
 function parseServerEnv() {
   const result = serverEnvSchema.safeParse({
+    SMTP_HOST: process.env.SMTP_HOST,
+    SMTP_PORT: process.env.SMTP_PORT,
     SMTP_USER: process.env.SMTP_USER,
     SMTP_PASS: process.env.SMTP_PASS,
+    SMTP_FROM: process.env.SMTP_FROM,
     NEXT_PUBLIC_APP_URL: process.env.NEXT_PUBLIC_APP_URL,
   });
 
   const data = result.success ? result.data : {};
   const user = data.SMTP_USER ?? "";
   const pass = data.SMTP_PASS ?? "";
+  const host = data.SMTP_HOST ?? "smtp.gmail.com";
+  const port = data.SMTP_PORT ?? 587;
+  const fromAddress = data.SMTP_FROM ?? user;
 
   return {
     smtp: {
-      host: SMTP_HOST,
-      port: SMTP_PORT,
+      host,
+      port,
       user,
       pass,
-      from: user ? `${env.storeName} <${user}>` : "",
+      from: fromAddress ? `${env.storeName} <${fromAddress}>` : "",
     },
     appUrl: data.NEXT_PUBLIC_APP_URL ?? env.siteUrl,
   };
