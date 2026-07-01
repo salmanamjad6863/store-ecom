@@ -6,33 +6,42 @@ import type { Product } from "@/types/product";
 import {
   FEATURED_HERO_PRODUCT_COUNT,
   HOMEPAGE_SETTINGS_DOC_ID,
+  type HomepageSettings,
 } from "@/types/store-settings";
 
-import { fetchProductsByIdsOnServer, fetchProductsOnServer } from "./products-server";
-
-export async function fetchFeaturedHeroProductsOnServer(): Promise<Product[]> {
+export async function fetchHomepageSettingsOnServer(): Promise<HomepageSettings> {
   const db = getServerFirestore();
   const snapshot = await getDoc(
     doc(db, COLLECTIONS.storeSettings, HOMEPAGE_SETTINGS_DOC_ID),
   );
 
-  let featuredProductIds: string[] = [];
-
-  if (snapshot.exists()) {
-    const data = snapshot.data();
-    featuredProductIds = Array.isArray(data.featuredProductIds)
-      ? data.featuredProductIds.slice(0, FEATURED_HERO_PRODUCT_COUNT).map(String)
-      : [];
+  if (!snapshot.exists()) {
+    return { featuredProductIds: [] };
   }
 
+  const data = snapshot.data();
+  const ids = Array.isArray(data.featuredProductIds)
+    ? data.featuredProductIds.slice(0, FEATURED_HERO_PRODUCT_COUNT).map(String)
+    : [];
+
+  while (ids.length < FEATURED_HERO_PRODUCT_COUNT) {
+    ids.push("");
+  }
+
+  return { featuredProductIds: ids };
+}
+
+/** Resolve hero products from an already-fetched catalog (no extra Firestore read). */
+export function resolveFeaturedHeroProductsFromCatalog(
+  products: Product[],
+  featuredProductIds: string[],
+): Product[] {
   const configuredIds = featuredProductIds.filter((id) => id.length > 0);
 
   if (configuredIds.length === 0) {
-    const products = await fetchProductsOnServer();
     return products.slice(0, FEATURED_HERO_PRODUCT_COUNT);
   }
 
-  const products = await fetchProductsByIdsOnServer(configuredIds);
   const byId = new Map(products.map((product) => [product.id, product]));
 
   return configuredIds

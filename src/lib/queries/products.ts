@@ -229,32 +229,21 @@ export async function fetchProductsByIds(ids: string[]): Promise<Product[]> {
     return [];
   }
 
-  const results: Product[] = [];
+  const results = await Promise.all(uniqueIds.map((id) => fetchProductById(id)));
 
-  for (const id of uniqueIds) {
-    const product = await fetchProductById(id);
-    if (product) {
-      results.push(product);
-    }
-  }
-
-  return results;
+  return results.filter((product): product is Product => product !== null);
 }
 
 export async function fetchProductsWithVariantsByIds(
   ids: string[],
 ): Promise<ProductWithVariants[]> {
   const uniqueIds = [...new Set(ids)];
-  const results: ProductWithVariants[] = [];
 
-  for (const id of uniqueIds) {
-    const product = await fetchProductWithVariantsById(id);
-    if (product) {
-      results.push(product);
-    }
-  }
+  const results = await Promise.all(
+    uniqueIds.map((id) => fetchProductWithVariantsById(id)),
+  );
 
-  return results;
+  return results.filter((product): product is ProductWithVariants => product !== null);
 }
 
 export type ProductInput = {

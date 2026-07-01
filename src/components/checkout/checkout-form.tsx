@@ -108,7 +108,10 @@ export function CheckoutForm({ items, subtotal, onCompletingChange }: CheckoutFo
       }
 
       await Promise.all([
-        queryClient.invalidateQueries({ queryKey: queryKeys.products.all }),
+        queryClient.invalidateQueries({
+          queryKey: queryKeys.products.all,
+          refetchType: "none",
+        }),
         checkoutUserId
           ? queryClient.invalidateQueries({ queryKey: queryKeys.orders.byUser(checkoutUserId) })
           : Promise.resolve(),
