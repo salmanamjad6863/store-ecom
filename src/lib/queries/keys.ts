@@ -5,6 +5,7 @@ export const queryKeys = {
       ["products", "list", filters?.type ?? "all", filters?.modelId ?? "all", filters?.theme ?? "all"] as const,
     detail: (slug: string) => ["products", "detail", slug] as const,
     detailWithVariants: (slug: string) => ["products", "detail", slug, "variants"] as const,
+    detailWithVariantsById: (id: string) => ["products", "detail-by-id", id, "variants"] as const,
     types: ["products", "types"] as const,
     themes: ["products", "themes"] as const,
     themeColors: (theme: string) => ["products", "theme-colors", theme] as const,

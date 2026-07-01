@@ -5,7 +5,7 @@ import Image from "next/image";
 import { useEffect, useMemo, useState } from "react";
 
 import { Price } from "@/components/ui/price";
-import { prefetchProductBySlug } from "@/lib/queries/prefetch-product";
+import { prefetchProductById } from "@/lib/queries/prefetch-product";
 import {
   getColorById,
   resolveListingDisplayColor,
@@ -56,7 +56,7 @@ export function ProductCard({ product }: ProductCardProps) {
   const themeLine = displayColor.themeLine?.trim();
 
   const handleOpenPreview = () => {
-    void prefetchProductBySlug(queryClient, product.slug);
+    void prefetchProductById(queryClient, product.id);
     openPreview(product, { initialColorId: displayColor.colorId });
   };
 
